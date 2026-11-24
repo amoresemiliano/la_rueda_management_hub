@@ -1,0 +1,1669 @@
+# MASTER BUILD PROMPT — LA RUEDA 1975 MANAGEMENT HUB
+## Enterprise Restaurant Operations & Intelligence Platform
+### Powered by VEGEN Digital
+
+## 1. PROJECT MISSION
+
+Build a visually exceptional, modular, mobile-first restaurant management platform for **La Rueda 1975**, a prestigious restaurant with approximately 70 years of history, located in Puerto Iguazú, Misiones, Argentina.
+
+The restaurant employs approximately 65 people and has a simultaneous seating capacity of 250 guests.
+
+This project is being developed by **VEGEN Digital**, a consultancy specializing in business transformation, software development, process digitalization, analytics, business intelligence and AI-powered automation.
+
+The platform must demonstrate how disconnected spreadsheets, paper checklists, manual records and fragmented workflows can evolve into an integrated digital management ecosystem.
+
+The guiding philosophy is:
+
+**DIGITALIZAR → REGISTRAR → RELACIONAR → ANALIZAR → DECIDIR → MEJORAR**
+
+This is initially a **functional demonstration**, not a production rollout.
+
+Build a comprehensive, navigable and visually compelling demonstration with realistic but entirely synthetic data. We will later decide which features to activate in production.
+
+Do not present mock screens as working functionality. Every primary workflow implemented in the demo must actually work.
+
+The goal is to demonstrate the potential of VEGEN Digital to transform the management of a complex restaurant organization, while preserving its culture, operational identity and personalized hospitality experience.
+
+---
+
+## 2. NON-NEGOTIABLE TECHNICAL REQUIREMENTS
+
+### Architecture
+
+- React + TypeScript.
+- Vite application suitable for Vercel deployment.
+- Mobile-first responsive design.
+- Modular, maintainable architecture.
+- SOLID principles where appropriate, without unnecessary abstraction.
+- Clear separation between presentation, business logic, services and data.
+- Reusable components, forms and tables.
+- Strong TypeScript typing.
+- Consistent entities and unique identifiers.
+- Accessible interactive controls.
+- No unnecessary dependencies.
+- No microservices or additional infrastructure.
+- No mandatory external authentication, payments or third-party API connections in the demo.
+
+### Deployment
+
+The frontend must be deployable directly to Vercel.
+
+Prepare the necessary configuration for SPA routing and direct navigation refreshes.
+
+The intended future production backend is PHP + MySQL/MariaDB hosted on Bluehost.
+
+However, **do not implement or connect the Bluehost backend in this initial build**.
+
+Instead:
+
+1. Define typed domain models.
+2. Create a repository/service abstraction.
+3. Implement a demo data adapter.
+4. Provide working local persistence for demo operations.
+5. Keep future backend integration possible without rewriting the UI.
+
+Use IndexedDB or another appropriate browser-local persistence method if necessary. Do not introduce a backend merely to persist the demonstration.
+
+The UI must clearly identify the environment as "Modo demostración".
+
+Include a reset-demo function.
+
+Synthetic data must remain synthetic. Never use real employee personal details, financial records, DNI, CUIL, bank details or contact data from reference files.
+
+### Demo reliability
+
+All implemented actions must work through the UI:
+
+- Create.
+- Read.
+- Update.
+- Search.
+- Filter.
+- Assign.
+- Confirm.
+- Record history.
+- Navigate between related entities.
+- Export or print where specified.
+
+Persist changes across page refreshes within the same browser.
+
+Do not fake persistence, imports, uploads, PDF generation or notifications.
+
+If an external function is not available in demo mode, clearly label its limitations instead of pretending it succeeded.
+
+---
+
+## 3. VISUAL IDENTITY AND UX
+
+Create a sophisticated, premium hospitality management interface.
+
+La Rueda is a historic restaurant with a refined gastronomic identity. The application should feel like a premium commercial product, not a generic administrative template.
+
+### Design direction
+
+- Elegant editorial typography.
+- Strong visual hierarchy.
+- Spacious, professional layouts.
+- Warm neutrals with a deep charcoal base.
+- Carefully chosen burgundy, copper or muted gold accents.
+- Contemporary, clean data visualization.
+- Subtle animations and transitions.
+- High-quality cards, tabs, filters and tables.
+- Professional dashboards with meaningful colors.
+- Excellent readability.
+- Clear feedback for every action.
+
+Avoid excessive gradients, decorative widgets and dashboard clutter.
+
+Use the name **La Rueda 1975** prominently.
+
+Include a discreet "Tecnología y transformación digital por VEGEN" footer.
+
+Do not invent or imitate an official restaurant logo. Use a tasteful typographic brand treatment unless an authentic logo is provided.
+
+### Layout
+
+Desktop:
+- Persistent collapsible sidebar.
+- Top navigation with breadcrumbs.
+- Global search.
+- Active organization context.
+- Contextual actions.
+- Notifications and user menu.
+
+Mobile:
+- Collapsible navigation drawer or appropriate mobile navigation.
+- Touch-friendly controls.
+- Responsive data cards rather than unusable wide tables.
+- Sticky primary actions where useful.
+- Fast access to daily tasks.
+
+All user-facing text must be in **Argentine Spanish**.
+
+Use:
+- ARS currency.
+- DD/MM/YYYY dates.
+- 24-hour clock.
+- Metric measurement units.
+
+---
+
+## 4. INFORMATION ARCHITECTURE
+
+The entire application must be divided into three primary business modules:
+
+1. **ORGANIZACIÓN**
+2. **GESTIÓN**
+3. **PERSONAL**
+
+Each module has its own navigation, dashboard, sections, records and operations.
+
+However, all modules share the same underlying entities and relationships.
+
+Do not build three independent applications.
+
+### Global navigation
+
+**Inicio**
+- Dashboard ejecutivo.
+- Resumen del restaurante.
+- Actividad reciente.
+- Alertas.
+- Pendientes.
+- Indicadores principales.
+- Accesos rápidos.
+
+**Organización**
+- Organigrama.
+- Sectores y puestos.
+- Dotación y turnos.
+- Procedimientos y checklists.
+- Manuales y documentos.
+- Cumplimiento y verificaciones.
+
+**Gestión**
+- Dashboard gerencial.
+- Ventas y comensales.
+- Productos e ingeniería de menú.
+- Compras y solicitudes.
+- Inventarios y movimientos.
+- Mermas y desperdicios.
+- Costos e indicadores.
+- Importación de datos.
+
+**Personal**
+- Directorio de empleados.
+- Legajos.
+- Asistencias y novedades.
+- Vacaciones y licencias.
+- Desempeño y disciplina.
+- Capacitaciones.
+- Préstamos y adelantos.
+- Propinas y liquidaciones.
+- Historial laboral.
+
+**Administración**
+- Usuarios y roles.
+- Configuración.
+- Catálogos.
+- Auditoría de actividad.
+- Datos de demostración.
+
+The sidebar should remain visually concise. Use expandable groups and contextual subsections.
+
+---
+
+# 5. MODULE ONE — ORGANIZACIÓN
+
+## Objective
+
+Digitize the actual organizational structure and connect it to staffing, daily responsibilities, procedures and operational verification.
+
+This module must be much more than a static organization chart.
+
+It represents the restaurant's operational structure.
+
+## 5.1 Interactive organization chart
+
+Display the organization as an expandable hierarchy:
+
+Restaurant → Area/Sector → Position → Assigned employees.
+
+Example areas:
+
+- Dirección.
+- Administración y Finanzas.
+- Recursos Humanos.
+- Compras.
+- Depósito y Almacén.
+- Cocina.
+- Parrilla.
+- Pastelería y Postres.
+- Salón y Servicio.
+- Caja.
+- Barra.
+- Limpieza y Lavandería.
+
+These are initial demo examples, not a validated final organizational structure.
+
+Allow authorized users to create, rename and reorganize sectors and positions.
+
+Example:
+
+**Salón**
+- Encargado de salón.
+- Supervisor.
+- Mozo.
+- Comis.
+- Host.
+- Personal de apoyo.
+
+Selecting a position opens the list of employees assigned to it.
+
+Selecting an employee opens their profile in the Personal module.
+
+Display:
+- Assigned headcount.
+- Active employees.
+- Scheduled employees today.
+- Absences.
+- Vacant positions.
+- Responsible manager.
+
+Do not assume employees belong permanently to only one sector or position.
+
+Support historical and temporary assignments.
+
+## 5.2 Staffing and daily assignments
+
+Create an interactive staffing calendar.
+
+Raquel and authorized supervisors should be able to:
+
+- Select a day.
+- Select a sector.
+- View available employees.
+- Assign employees to shifts.
+- Define start and end times.
+- Assign a temporary position.
+- Record scheduled days off.
+- Record absences.
+- Identify insufficient coverage.
+- Compare planned versus actual staffing.
+
+Use intuitive visual selection controls, including checkboxes where appropriate.
+
+Changes must be reflected in the employee's personal record.
+
+Do not create duplicate employee identities.
+
+## 5.3 Procedures and digital checklists
+
+Create an operational procedure management system.
+
+Hierarchy:
+
+Sector → Position → Procedure → Checklist template → Checklist execution.
+
+Examples:
+- Cash register opening.
+- Cash register closing.
+- Kitchen opening.
+- Cold chamber verification.
+- Cleaning verification.
+- Product withdrawal control.
+- Grill opening and closing.
+- Dessert production.
+- Bar inventory verification.
+
+The system must support different field types, not just yes/no:
+
+- Checkbox.
+- Numeric quantity.
+- Time.
+- Date.
+- Text observation.
+- Selection.
+- Temperature.
+- Product reference.
+- Optional evidence attachment.
+
+Example: cash opening requires recording the amount counted, not merely checking "done".
+
+Each checklist execution must store:
+
+- Unique ID.
+- Procedure/template version.
+- Sector.
+- Position.
+- Shift.
+- Scheduled date.
+- Employee assigned.
+- Employee who actually performed the action.
+- User who registered it.
+- Submission timestamp.
+- Verification status.
+- Verifier identity.
+- Verification timestamp.
+- Observations.
+- Discrepancies.
+
+Distinguish explicitly between:
+
+**Asignado / Realizado / Registrado / Verificado**
+
+These are different concepts and must never be silently merged.
+
+Employees must be able to save a draft, submit a checklist and review their own submissions.
+
+Authorized supervisors can verify or dispute submitted checklists.
+
+Do not allow someone to change a completed checklist silently.
+
+Corrections must create a traceable history.
+
+## 5.4 Operational discrepancy management
+
+A supervisor or incoming shift should be able to report that something declared as completed was not actually completed.
+
+Example:
+
+Previous shift:
+"Freezer cleaning completed."
+
+Next shift:
+"Cleaning not completed."
+
+Record:
+- Original execution.
+- Disputed task.
+- Employee reporting discrepancy.
+- Timestamp.
+- Observation.
+- Optional evidence.
+- Resolution.
+- Verifier.
+
+Show discrepancies in the sector dashboard.
+
+Use them to calculate verification and discrepancy indicators.
+
+Do not automatically treat an unchecked or disputed task as employee misconduct.
+
+## 5.5 Digital manuals and documents
+
+Create a document library organized by:
+
+- Sector.
+- Position.
+- Procedure.
+- Document category.
+- Version.
+
+Allow users to:
+- Upload PDF documents.
+- View documents.
+- Download documents.
+- Search by title.
+- Navigate related procedures.
+- Identify the current approved version.
+
+In demo mode, implement actual file handling supported by the chosen local storage adapter, with clear limitations if large files cannot be retained.
+
+Do not fake an uploaded file.
+
+Document visibility must follow role permissions.
+
+Show version and approval status.
+
+## 5.6 Organizational analytics
+
+Provide indicators such as:
+
+- Checklist completion rate.
+- Verified completion rate.
+- Pending verifications.
+- Discrepancies by area.
+- Overdue procedures.
+- Scheduled versus actual staffing.
+- Missing coverage.
+- Recurring operational issues.
+
+Each KPI must be calculated from stored events, not hardcoded.
+
+---
+
+# 6. MODULE TWO — GESTIÓN
+
+## Objective
+
+Provide Pablo and authorized management with a highly visual operating and financial dashboard that relates sales, purchases, inventory, food cost, operational performance and expected demand.
+
+The application must transform scattered information into useful management intelligence.
+
+## 6.1 Management dashboard
+
+Build a visually impressive executive dashboard.
+
+Prominent KPI cards:
+
+- Facturación.
+- Ticket promedio.
+- Comensales.
+- Cubiertos vendidos.
+- Ventas por período.
+- Costo de mercadería.
+- Food cost percentage.
+- Compras del período.
+- Existencias valorizadas.
+- Productos críticos.
+- Mermas.
+- Desperdicios.
+- Variación de costos.
+- Dotación prevista.
+- Alertas operativas.
+
+Clearly distinguish metrics supported by imported data from estimates or unavailable figures.
+
+Provide filters:
+- Today.
+- Yesterday.
+- Last 7 days.
+- This month.
+- Custom period.
+- Sector.
+- Product category.
+
+Use:
+- Trend lines.
+- Ranked bar charts.
+- Summary cards.
+- Time comparisons.
+- Drill-down tables.
+- Variance indicators.
+- Product contribution visualizations.
+
+Design the hierarchy so Pablo can understand the state of the restaurant within seconds.
+
+## 6.2 Sales and guest analytics
+
+Include:
+
+- Total sales.
+- Sales by day.
+- Sales by product.
+- Sales by category.
+- Guest count.
+- Average ticket.
+- Average sales per guest.
+- Product ranking.
+- Product rotation.
+- Sales trends.
+- Sales by time period when source data supports it.
+
+The restaurant has a simultaneous capacity of 250 guests.
+
+Do not confuse capacity with daily guest count or table turnover.
+
+Calculate occupancy only when suitable occupancy and seating data exist.
+
+## 6.3 Menu engineering and product portfolio
+
+Build an interactive menu engineering analysis.
+
+Use four quadrants:
+
+- Estrellas: high popularity, high contribution margin.
+- Caballos de batalla: high popularity, low contribution margin.
+- Rompecabezas: low popularity, high contribution margin.
+- Perros: low popularity, low contribution margin.
+
+This may be called "Matriz BCG adaptada", but implement the actual hospitality menu engineering logic.
+
+Allow users to inspect:
+
+- Units sold.
+- Selling price.
+- Estimated or verified recipe cost.
+- Contribution margin.
+- Popularity.
+- Classification.
+- Comparison between periods.
+
+Never classify menu products by profitability unless reliable cost inputs exist.
+
+Display "Datos insuficientes" when appropriate.
+
+## 6.4 Digital purchase request process
+
+Replace manual purchase slips with a digital process.
+
+The current operational flow is:
+
+1. Each area submits product requirements.
+2. René reviews the requests.
+3. René physically verifies existing inventory.
+4. René validates required quantities.
+5. Pablo makes the final purchase decision using expected demand, events, reservations and operational knowledge.
+6. Approved orders are prepared for suppliers.
+
+Digitize this flow without eliminating necessary human verification.
+
+Create the following states:
+
+- Borrador.
+- Solicitado.
+- En verificación.
+- Verificado.
+- Pendiente de aprobación.
+- Aprobado.
+- Rechazado.
+- Enviado.
+- Recibido.
+- Cerrado.
+
+Users must be able to:
+
+- Select products from a searchable catalog.
+- Choose quantity and unit.
+- Add observations.
+- Submit a purchase request.
+- Review existing stock.
+- Record physically verified stock.
+- Adjust requested quantities with justification.
+- Approve or reject based on role.
+- Group approved items by supplier.
+- Generate purchase orders.
+- Register received quantities.
+- Record partial deliveries and discrepancies.
+
+Separate:
+
+Requested quantity → Verified quantity → Approved quantity → Received quantity.
+
+Each transition must retain actor, timestamp and relevant notes.
+
+## 6.5 Purchase order documents
+
+Generate professional purchase orders with:
+
+- Order number.
+- Date.
+- Supplier.
+- Products.
+- Units.
+- Quantities.
+- Optional reference prices.
+- Notes.
+- Authorized person.
+- Delivery information.
+- Order status.
+
+Provide:
+- Download PDF.
+- Print.
+- Share via WhatsApp.
+- Share via email.
+
+Use actual browser-supported sharing behavior.
+
+If direct sharing of a generated PDF attachment is not supported, offer PDF download and an appropriate shareable message without claiming the attachment was sent automatically.
+
+No real supplier contact information should be included in the synthetic demo.
+
+## 6.6 Inventory management
+
+Create a central product catalog.
+
+Products should support:
+
+- Unique ID.
+- Name.
+- Category.
+- Subcategory.
+- Base unit.
+- Purchase unit.
+- Conversion factor if applicable.
+- Minimum stock.
+- Current stock.
+- Cost reference.
+- Supplier reference.
+- Storage location.
+- Active/inactive status.
+
+Example categories from the restaurant's current records:
+
+- Carnes.
+- Pescados y mariscos.
+- Lácteos.
+- Verduras.
+- Mercadería general.
+- Limpieza.
+- Lavandería.
+- Bebidas.
+- Barra.
+- Insumos de producción.
+
+Support:
+- Stock entries.
+- Stock withdrawals.
+- Stock adjustments.
+- Physical counts.
+- Product transfers.
+- Inventory discrepancies.
+- Historical movements.
+
+A stock adjustment is not automatically a purchase, a waste event or a sale.
+
+The system must preserve movement origins.
+
+## 6.7 Mermas y desperdicios
+
+Build a dedicated mobile-friendly registration interface.
+
+Clearly distinguish:
+
+**MERMA**
+Normal or process-related loss during cleaning, trimming, cutting or preparation.
+
+Example:
+2 kg beef → 1.7 kg usable → 0.3 kg loss.
+
+Calculate:
+- Gross input quantity.
+- Usable output.
+- Loss quantity.
+- Loss percentage.
+- Yield percentage.
+- Estimated loss value.
+
+**DESPERDICIO**
+Avoidable or abnormal loss, including:
+- Spoilage.
+- Expiration.
+- Incorrect storage.
+- Overproduction.
+- Preparation errors.
+- Damaged products.
+- Returned dishes.
+- Incorrect orders.
+- Service incidents.
+- Other documented causes.
+
+Example:
+3 kg of shrimp discarded after spoiling in cold storage.
+
+Each loss event must record:
+
+- Product.
+- Type.
+- Quantity.
+- Unit.
+- Reason.
+- Sector.
+- Operational date.
+- Registered by.
+- Performed/reported by, where applicable.
+- Automatic timestamp.
+- Cost reference.
+- Estimated economic impact.
+- Optional notes.
+- Optional evidence.
+
+Provide reports by:
+- Product.
+- Sector.
+- Cause.
+- Time period.
+- Employee or responsible function where appropriately authorized.
+- Total loss value.
+- Yield.
+
+Prevent double-counting the same physical loss across inventory and analytics.
+
+Normal process yield loss and abnormal waste must be separately reported.
+
+## 6.8 Data import center
+
+Create a centralized import workspace supporting:
+
+- CSV.
+- XLSX.
+- TXT.
+
+Source profiles:
+
+- MaxiRest.
+- Holistor.
+- Etiquetera / ticketera.
+- Other authorized files.
+
+Do not assume the exact export formats of these systems.
+
+The import flow must support:
+
+1. Select source.
+2. Upload file.
+3. Detect columns.
+4. Preview raw rows.
+5. Map source columns to canonical fields.
+6. Validate required fields.
+7. Review errors and warnings.
+8. Preview normalized records.
+9. Confirm import.
+10. View import summary and history.
+
+Allow saved mapping profiles where supported by demo persistence.
+
+Support decimal commas, thousands separators, date formats, currencies and measurement units commonly used in Argentina.
+
+Do not silently reinterpret ambiguous values.
+
+Use import batch IDs, source identifiers and fingerprints to reduce duplicate imports.
+
+Repeated imports must not inflate sales, costs or inventories.
+
+If source data lacks a reliable unique transaction identifier, show an explicit duplicate-risk warning rather than claiming perfect deduplication.
+
+Initial supported canonical datasets:
+
+- Sales.
+- Sale line items.
+- Products.
+- Purchase records.
+- Supplier records.
+- Inventory snapshots.
+- Inventory movements.
+- Expenses.
+- Financial summaries.
+
+Do not invent missing values.
+
+### Important
+
+The import interface must be functional with compatible sample files.
+
+Provide downloadable synthetic example templates.
+
+Actual MaxiRest, Holistor and ticketera exports will be mapped and validated later.
+
+## 6.9 Forecasting and management context
+
+Provide a simple operational planning section for Pablo.
+
+Inputs:
+- Expected guests.
+- Reservations.
+- Special events.
+- Holidays.
+- Groups.
+- Known demand changes.
+- Planned staffing.
+- Critical stock alerts.
+
+Use the information to display a daily management overview.
+
+Do not invent advanced forecasting algorithms.
+
+Initial forecasting should use transparent, user-entered expectations and simple calculations.
+
+---
+
+# 7. MODULE THREE — PERSONAL
+
+## Objective
+
+Build an integrated employee management platform where each employee has a unique digital record and their entire employment history is preserved.
+
+This is not just a staff directory.
+
+It is a complete employment lifecycle management structure.
+
+## 7.1 Employee directory
+
+Provide:
+- Searchable employee cards.
+- Table view.
+- Filters.
+- Status.
+- Current sector.
+- Current position.
+- Hire date.
+- Assigned supervisor.
+- Quick navigation to employee record.
+
+Support approximately 65 synthetic employee profiles.
+
+Use invented names and safe fictional identifiers.
+
+Do not copy real employee details from the reference spreadsheets.
+
+## 7.2 Digital employee profile
+
+Each employee has one unique profile.
+
+Design an excellent employee profile interface, with a clean header and organized tabs.
+
+Suggested navigation:
+
+**Resumen**
+- Basic employment summary.
+- Current assignment.
+- Tenure.
+- Upcoming shifts.
+- Vacation balance.
+- Recent events.
+- Authorized alerts.
+
+**Datos y contrato**
+- Identity information.
+- Contact information.
+- Emergency contact.
+- Hire date.
+- Contract type.
+- Employment status.
+- Current salary terms, subject to permissions.
+- Authorized documents.
+
+**Trayectoria laboral**
+- Current and previous sectors.
+- Positions held.
+- Assignment start and end dates.
+- Supervisors.
+- Contract changes.
+- Employment status history.
+- Termination record where applicable.
+
+**Asistencia y novedades**
+- Scheduled shifts.
+- Attendance.
+- Justified absences.
+- Unjustified absences.
+- Late arrivals.
+- Extra hours.
+- Worked days off.
+- Compensatory rest.
+- Corrections and approvals.
+
+**Vacaciones y licencias**
+- Vacation entitlement.
+- Requested days.
+- Approved days.
+- Taken days.
+- Available balance.
+- Leave periods.
+- Approval history.
+
+**Desempeño y disciplina**
+- Evaluations.
+- Observations.
+- Positive feedback.
+- Recorded incidents.
+- Warnings.
+- Suspensions.
+- Supporting documents.
+- Responsible authorizations.
+
+Keep evaluations, disciplinary actions and operational incidents as distinct record types even if displayed together.
+
+**Capacitaciones y reuniones**
+- Training sessions.
+- Attendance.
+- Instructor.
+- Scheduled date.
+- Completion status.
+- Observations.
+- Related documents.
+
+**Préstamos y adelantos**
+- Amount.
+- Currency.
+- Grant date.
+- Authorized by.
+- Repayment plan.
+- Installments.
+- Recorded payments.
+- Outstanding balance.
+- Related documentation.
+
+**Propinas y liquidaciones**
+- Recorded tips.
+- Allocations.
+- Pay period.
+- Compensation components.
+- Absences affecting payroll.
+- Extra hours.
+- Advances.
+- Authorized deductions.
+- Payment status.
+
+**Documentación**
+- Employment documents.
+- Contracts.
+- Certificates.
+- Signed records.
+- Downloadable files.
+- Document dates and version history.
+
+## 7.3 Weekly staff report
+
+Digitize the existing paper-based weekly employee report.
+
+Fields include:
+
+- Date range.
+- Employee.
+- Extra hours.
+- Paid days off.
+- Pending compensatory rest.
+- Late arrivals.
+- Observations.
+- Relevant performance or attendance events.
+
+Support employee selection from the existing directory.
+
+Do not require typing the same employee name repeatedly.
+
+The weekly report should aggregate available events while allowing explicitly authorized adjustments.
+
+## 7.4 Weekly payroll preparation
+
+Create a payroll preparation workspace.
+
+Important: this is a **management and payroll pre-liquidation tool**, not a certified Argentine payroll or tax-compliance engine.
+
+Provide:
+
+- Payroll period.
+- Employees.
+- Basic pay components.
+- Recorded shifts.
+- Extra hours.
+- Absences.
+- Advances.
+- Loan installments where authorized.
+- Tips.
+- Other approved adjustments.
+- Review status.
+- Payment tracking.
+
+Support weekly periods because the restaurant currently uses weekly payment records.
+
+Show calculations transparently.
+
+Do not invent Argentine labor, union, tax, vacation or payroll formulas.
+
+Legal and contractual rules must be explicitly configurable and validated before production use.
+
+Provide synthetic example calculations for the demo.
+
+Do not automatically convert an operational incident into a payroll deduction or disciplinary measure.
+
+## 7.5 Employee lifecycle history
+
+Every relevant event should contribute to an employee's chronological history:
+
+- Hire.
+- Position assignment.
+- Sector transfer.
+- Shift change.
+- Absence.
+- Vacation.
+- Training.
+- Performance evaluation.
+- Authorized disciplinary action.
+- Contract change.
+- Salary-related event.
+- Employment termination.
+
+Allow authorized HR users to review the timeline.
+
+Preserve historical assignments instead of overwriting previous positions.
+
+An employee may hold multiple roles or assignments over time.
+
+## 7.6 Permissions and sensitive information
+
+Not all supervisors should see all employee information.
+
+Example:
+
+Salon supervisor:
+- Assigned staff.
+- Shifts.
+- Operational attendance.
+- Relevant procedures.
+- Authorized operational events.
+
+HR:
+- Employment records.
+- Contracts.
+- Absences.
+- Leave.
+- Performance.
+- Disciplinary records.
+
+Payroll/Administration:
+- Approved payroll inputs.
+- Compensation components.
+- Loans and advances.
+- Payment records.
+
+Owners:
+- Authorized management information and summarized analytics.
+
+An employee:
+- Only their own authorized information.
+
+Implement a clear permission policy in the frontend demo.
+
+However, explicitly document that client-side permissions are not sufficient for production security.
+
+Production will require server-side authorization, protected document access and audit enforcement.
+
+---
+
+# 8. CROSS-MODULE RELATIONSHIPS
+
+This is one of the most important requirements.
+
+All three modules must be connected.
+
+Examples:
+
+### Example A — Staffing
+
+An employee assigned to the salon in ORGANIZACIÓN must appear under the corresponding sector and position in PERSONAL.
+
+A supervisor should not need to create the employee again.
+
+### Example B — Attendance
+
+An absence entered by an authorized supervisor must become available as an attendance event in PERSONAL.
+
+It may also affect the staffing coverage view in ORGANIZACIÓN.
+
+Payroll preparation may consume that event, subject to authorization.
+
+### Example C — Checklist execution
+
+A checklist completed in ORGANIZACIÓN must reference:
+
+- The real employee identity.
+- The active position/sector assignment.
+- The relevant shift.
+- The procedure version.
+
+The event should contribute to operational analytics.
+
+### Example D — Purchase request
+
+A kitchen employee submits a purchase request in GESTIÓN.
+
+The request is verified by the purchasing team and approved by Pablo.
+
+The application must show distinct actors for each action.
+
+### Example E — Waste
+
+A waste record entered in GESTIÓN must affect waste analytics.
+
+If it is linked to an inventory write-off, it must use one traceable inventory movement rather than creating duplicate stock deductions.
+
+### Example F — Management dashboard
+
+Pablo's dashboard should combine, where data is available:
+
+- Sales.
+- Inventory.
+- Approved purchases.
+- Recorded losses.
+- Expected demand.
+- Planned staffing.
+
+These relationships should be visible through contextual links and drill-down actions.
+
+---
+
+# 9. DOMAIN MODEL AND DATA INTEGRITY
+
+Use normalized domain entities.
+
+At minimum, consider:
+
+- Organization.
+- Sector.
+- Position.
+- Employee.
+- EmploymentContract.
+- EmployeeAssignment.
+- Shift.
+- ShiftAssignment.
+- AttendanceEvent.
+- LeaveRequest.
+- VacationBalance.
+- PerformanceEvaluation.
+- DisciplinaryAction.
+- TrainingSession.
+- TrainingAttendance.
+- Loan.
+- LoanInstallment.
+- PayrollPeriod.
+- PayrollAdjustment.
+- TipAllocation.
+- PayrollPreparation.
+- Procedure.
+- ProcedureVersion.
+- ChecklistTemplate.
+- ChecklistExecution.
+- ChecklistAnswer.
+- ChecklistVerification.
+- Discrepancy.
+- Document.
+- Product.
+- ProductCategory.
+- Supplier.
+- PurchaseRequest.
+- PurchaseRequestLine.
+- PurchaseApproval.
+- PurchaseOrder.
+- PurchaseOrderLine.
+- GoodsReceipt.
+- InventoryLocation.
+- InventoryMovement.
+- InventorySnapshot.
+- LossEvent.
+- Sale.
+- SaleLine.
+- Expense.
+- ImportBatch.
+- ImportMapping.
+- AuditEvent.
+
+Adapt the exact structure where necessary, but preserve relational integrity.
+
+Avoid duplicate or competing sources of truth.
+
+All important records should contain appropriate metadata:
+
+- Unique ID.
+- CreatedAt.
+- CreatedBy.
+- UpdatedAt.
+- UpdatedBy.
+- Operational date.
+- Status.
+- Source.
+- Related entity references.
+
+For event records, distinguish:
+- Event occurrence time.
+- Registration time.
+- Person performing the action.
+- Person entering the record.
+- Person approving or verifying it.
+
+Never silently rewrite audit history.
+
+Use immutable or append-only audit events for important transitions.
+
+Do not log sensitive personal or financial content unnecessarily.
+
+---
+
+# 10. ROLE-BASED EXPERIENCE
+
+Create demo role switching.
+
+Suggested profiles:
+
+**Administrador VEGEN**
+- Demo configuration and system exploration.
+
+**Dirección**
+- Strategic dashboards.
+- Approvals.
+- Authorized business metrics.
+
+**Gerencia operativa — Pablo**
+- Sales.
+- Purchases.
+- Stock.
+- Food cost.
+- Waste.
+- Operational planning.
+
+**Recursos Humanos — Raquel**
+- Employees.
+- Organizational structure.
+- Staffing.
+- Procedures.
+- Employment history.
+
+**Compras — René**
+- Purchase requests.
+- Stock verification.
+- Supplier orders.
+- Goods receipts.
+
+**Responsable de sector**
+- Assigned employees.
+- Checklists.
+- Operational requests.
+- Authorized observations.
+
+**Colaborador**
+- Own tasks.
+- Own procedures.
+- Authorized personal information.
+
+These roles are demo examples and must remain configurable.
+
+Do not treat this demo role switcher as secure production authentication.
+
+When switching role, update the displayed navigation and permissions to demonstrate distinct experiences.
+
+---
+
+# 11. DEMO DATA STRATEGY
+
+Populate the application with coherent synthetic data.
+
+Include approximately:
+
+- 65 employees.
+- Multiple sectors.
+- Multiple positions per sector.
+- Several employment assignment histories.
+- 80–120 inventory products.
+- Multiple suppliers.
+- Purchase requests in different states.
+- Inventory snapshots and movements.
+- Checklist templates and executions.
+- Attendance events.
+- Vacation requests.
+- Training records.
+- Loans and advances.
+- Weekly payroll examples.
+- Sales records.
+- Menu items.
+- Recipe-cost examples.
+- Mermas and desperdicios.
+- Import history.
+- Operational alerts.
+
+Synthetic records must share consistent IDs and relationships.
+
+For example:
+
+If a simulated employee is assigned to the kitchen, their current sector, assigned shift and checklist records must be consistent across modules.
+
+Dashboard totals must be derived from the same synthetic records shown in detailed tables.
+
+Do not hardcode contradictory KPI totals.
+
+Do not generate or display invented real-world sensitive information.
+
+Clearly identify all figures as demonstration data.
+
+---
+
+# 12. REUSABLE INTERFACE COMPONENTS
+
+Build reusable UI components such as:
+
+- KPI cards.
+- Searchable data tables.
+- Filter panels.
+- Employee selector.
+- Product selector.
+- Supplier selector.
+- Sector selector.
+- Status indicators.
+- Date picker.
+- Shift calendar.
+- Checklist renderer.
+- Dynamic form fields.
+- Confirmation dialog.
+- Approval panel.
+- Activity timeline.
+- Audit history view.
+- Document viewer.
+- Import preview.
+- Column mapping interface.
+- PDF export.
+- Empty states.
+- Loading states.
+- Error states.
+- Toast notifications.
+
+Ensure consistent validation and feedback.
+
+Support keyboard navigation and accessible form labels.
+
+---
+
+# 13. ANALYTICS AND DATA VISUALIZATION
+
+The product must communicate the potential of business intelligence.
+
+Provide hierarchical analytics:
+
+**Operational level**
+- Daily tasks.
+- Checklists.
+- Current staffing.
+- Open requests.
+- Stock alerts.
+
+**Management level**
+- Department performance.
+- Purchasing patterns.
+- Waste.
+- Labor coverage.
+- Product rotation.
+- Financial trends.
+
+**Executive level**
+- Business performance.
+- Main risks.
+- Cost trends.
+- Profitability indicators when supported.
+- Opportunities for improvement.
+
+Every visual should answer a meaningful business question.
+
+Prefer clear bar, line and comparison charts over decorative visualizations.
+
+Include:
+- Trend comparisons.
+- Period filters.
+- Sector filters.
+- Product drill-down.
+- Variance analysis.
+- Exportable summary tables.
+
+Do not invent causal relationships from correlations.
+
+Use clear definitions and denominators for each KPI.
+
+Charts must respond to filters.
+
+---
+
+# 14. FUTURE AI CAPABILITIES
+
+Prepare the architecture conceptually for future AI-assisted features, but do not require any external paid AI service for the demonstration.
+
+Potential extensions include:
+
+- Procedure knowledge assistant.
+- Operational anomaly summaries.
+- Recurring incident classification.
+- Waste pattern analysis.
+- Purchasing recommendations.
+- Management report summaries.
+- Employee training assistance.
+
+For this release, these may be represented as clearly identified future capabilities.
+
+Do not fabricate AI-generated insights or claim to have trained a model.
+
+Avoid introducing AI dependencies unless an implemented feature genuinely requires them.
+
+---
+
+# 15. APPLICATION EXPERIENCE AND NAVIGATION
+
+The application should feel alive.
+
+Create a high-quality welcome dashboard with:
+
+- Restaurant identification.
+- Current operational date.
+- Synthetic management summary.
+- Alerts.
+- Today's staffing.
+- Pending tasks.
+- Critical inventory.
+- Purchases awaiting approval.
+- Recent operational activity.
+- Quick links to the three modules.
+
+Navigation must support complete journeys.
+
+Example:
+
+Inicio → Organización → Salón → Mozo → Employee → Employee profile → Attendance.
+
+Example:
+
+Inicio → Gestión → Compras → Pending request → Verification → Approval → Purchase order PDF.
+
+Example:
+
+Inicio → Personal → Employee → Vacation → New request → Approval → Updated balance.
+
+Example:
+
+Inicio → Gestión → Mermas → New record → Saved record → Updated dashboard.
+
+Do not create disconnected screens or buttons that lead nowhere.
+
+---
+
+# 16. FUNCTIONAL ACCEPTANCE SCENARIOS
+
+The demonstration is successful only if the following flows work end-to-end:
+
+### Scenario 1 — Employee and organization
+
+Create a synthetic employee, assign them to a sector and position, and verify that the same employee appears in both ORGANIZACIÓN and PERSONAL.
+
+### Scenario 2 — Daily staffing
+
+Assign the employee to a shift, record an absence and verify that the staffing view and employee history both reflect the change.
+
+### Scenario 3 — Checklist with traceability
+
+Assign a procedure, complete its checklist, register the performing employee and submitting user, then verify or dispute the result from an authorized supervisor role.
+
+The history must show the relevant actors and timestamps.
+
+### Scenario 4 — Purchase cycle
+
+Create a purchase request, verify stock, adjust quantities, approve the purchase, generate a PDF order and record a receipt.
+
+All steps must refer to the same underlying request and preserve their history.
+
+### Scenario 5 — Waste and inventory
+
+Register 3 kg of spoiled shrimp as waste, link it to the appropriate inventory adjustment and verify that the waste analytics and stock quantities are consistent.
+
+### Scenario 6 — Yield loss
+
+Record 2 kg gross input and 1.7 kg usable output.
+
+Verify:
+- Loss: 0.3 kg.
+- Loss percentage: 15%.
+- Yield: 85%.
+
+Do not calculate monetary impact without a known cost.
+
+### Scenario 7 — Employee lifecycle
+
+Record a position transfer and verify that the current assignment changes while the previous assignment remains in the historical timeline.
+
+### Scenario 8 — Financial import
+
+Import a compatible synthetic CSV, map columns, preview records, confirm the import and verify that the corresponding dashboard indicators update.
+
+Reimporting the same file should not silently duplicate records.
+
+### Scenario 9 — Payroll preparation
+
+Record an approved advance, associate it with an employee and verify that the payroll preparation view shows the authorized adjustment without automatically executing a payment.
+
+### Scenario 10 — Persistence
+
+Refresh the application and verify that changes made during the demonstration remain available in the same browser environment.
+
+---
+
+# 17. IMPLEMENTATION PRIORITY AND SCOPE CONTROL
+
+The full interface should cover all three modules.
+
+However, implementation must prioritize genuine functionality over superficial feature quantity.
+
+Use this order:
+
+**Phase A — Shared foundation**
+- Application shell.
+- Navigation.
+- Demo roles.
+- Shared entity IDs.
+- Synthetic dataset.
+- Local persistence.
+- Reusable components.
+
+**Phase B — Core functional vertical slices**
+- Interactive organization chart and employee links.
+- Employee profile.
+- Shift assignment.
+- Checklist completion and verification.
+- Purchase request and approval.
+- Waste registration.
+- Management dashboard with linked data.
+
+**Phase C — Extended workflows**
+- Documents.
+- Inventory movements.
+- Employee events.
+- Loans.
+- Payroll preparation.
+- Data imports.
+- Purchase order PDF generation.
+
+**Phase D — Polish**
+- Visual refinements.
+- Responsive improvements.
+- Analytics.
+- Error handling.
+- Validation.
+- Regression checks.
+
+Implement as much as can be done correctly.
+
+If a feature is not complete, label it clearly and do not simulate successful operations.
+
+Do not sacrifice core working flows to produce more pages.
+
+---
+
+# 18. CODE QUALITY
+
+Use a clear module-oriented folder structure.
+
+Suggested structure:
+
+src/
+- app/
+- components/
+- modules/
+  - organization/
+  - management/
+  - personnel/
+- domain/
+- services/
+- repositories/
+- data/
+- hooks/
+- utils/
+- styles/
+
+Preserve a single source of truth for employee, product, supplier and organizational records.
+
+Avoid:
+- Giant components.
+- Duplicated business logic.
+- Hardcoded dashboard values.
+- Parallel inconsistent mock datasets.
+- Excessive state management frameworks.
+- Unnecessary external integrations.
+- Complex infrastructure.
+- Backend code that is not needed for the demo.
+
+Include appropriate validation and error handling.
+
+All mandatory form inputs must be validated.
+
+Ensure TypeScript and production builds pass.
+
+---
+
+# 19. FUTURE BLUEHOST INTEGRATION
+
+Prepare an architecture suitable for a future PHP/MySQL backend.
+
+Document:
+
+- Required API resources.
+- Suggested entity relationships.
+- Authentication and server-side authorization requirements.
+- Audit requirements.
+- Upload handling.
+- Import processing.
+- File access security.
+- Database integrity constraints.
+
+Do not build this backend now.
+
+Do not connect to production databases.
+
+Do not embed credentials, personal data or secrets in the frontend.
+
+Keep browser-local demo persistence clearly separate from future production persistence.
+
+---
+
+# 20. FINAL DELIVERABLES
+
+Deliver:
+
+1. A complete React + TypeScript project.
+2. High-quality responsive UI.
+3. All three modules with coherent navigation.
+4. Realistic synthetic demo data.
+5. Working critical vertical workflows.
+6. Functional local demo persistence.
+7. Working interactive charts.
+8. Sample import templates.
+9. Working PDF exports where implemented.
+10. Vercel-ready configuration.
+11. A concise README.
+12. A clearly identified list of features fully implemented versus demo-only placeholders.
+13. A summary of acceptance scenarios tested.
+
+The final application should be visually impressive enough to demonstrate to the owners of La Rueda and operationally coherent enough that they can understand how their existing manual processes could be transformed.
+
+## FINAL PRODUCT PRINCIPLE
+
+This must not look like three disconnected business applications.
+
+It must feel like one coherent operational intelligence platform.
+
+**ORGANIZACIÓN tells us who does what, when and how.**
+
+**GESTIÓN tells us what happens in the business, what resources are used and what results are obtained.**
+
+**PERSONAL preserves the complete employment history and connects people to their organizational and operational activity.**
+
+Every properly recorded event should create trustworthy data.
+
+Every trustworthy dataset should enable meaningful analysis.
+
+Every meaningful analysis should support better decisions.
+
+Build this as a serious, extensible VEGEN Digital product, beginning with a compelling and functional demonstration for La Rueda 1975.

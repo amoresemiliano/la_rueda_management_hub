@@ -1,0 +1,8 @@
+{
+  "name": "La Rueda 1975 — Management Hub",
+  "description": "Plataforma integral de gestión operativa, organización y personal para La Rueda 1975 (Puerto Iguazú, Misiones). Demostración funcional desarrollada por VEGEN Digital.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
