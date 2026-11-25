@@ -4,9 +4,9 @@ export const DEMO_USERS: DemoUserProfile[] = [
   {
     id: 'usr-vegen',
     roleId: 'admin_vegen',
-    name: 'Equipo VEGEN Digital',
-    roleLabel: 'Administrador VEGEN',
-    title: 'Configuración y exploración integral',
+    name: 'Administrador VEGEN',
+    roleLabel: 'Administrador',
+    title: 'Configuración y acceso integral',
     description:
       'Acceso completo a todos los módulos, auditoría, importación y datos de demostración.'
   },
@@ -15,7 +15,7 @@ export const DEMO_USERS: DemoUserProfile[] = [
     roleId: 'direccion',
     name: 'Dirección La Rueda',
     roleLabel: 'Dirección',
-    title: 'Socios / Dirección General',
+    title: 'Dirección General',
     employeeId: 'emp-001',
     description:
       'Tableros ejecutivos, aprobaciones estratégicas, rentabilidad e indicadores consolidados.'
@@ -24,8 +24,8 @@ export const DEMO_USERS: DemoUserProfile[] = [
     id: 'usr-pablo',
     roleId: 'gerencia_pablo',
     name: 'Pablo Méndez',
-    roleLabel: 'Gerencia operativa — Pablo',
-    title: 'Gerente Operativo',
+    roleLabel: 'Operación',
+    title: 'Gerencia Operativa',
     employeeId: 'emp-002',
     description:
       'Ventas, aprobación final de compras, inventarios, food cost, mermas y planificación de demanda.'
@@ -34,8 +34,8 @@ export const DEMO_USERS: DemoUserProfile[] = [
     id: 'usr-raquel',
     roleId: 'rrhh_raquel',
     name: 'Raquel Benítez',
-    roleLabel: 'Recursos Humanos — Raquel',
-    title: 'Responsable de RRHH y Organización',
+    roleLabel: 'Recursos Humanos',
+    title: 'Gestión de Personal y Organización',
     employeeId: 'emp-004',
     description:
       'Legajos, organigrama, dotación y turnos, procedimientos, licencias, disciplina y pre-liquidación.'
@@ -44,8 +44,8 @@ export const DEMO_USERS: DemoUserProfile[] = [
     id: 'usr-rene',
     roleId: 'compras_rene',
     name: 'René Giménez',
-    roleLabel: 'Compras — René',
-    title: 'Encargado de Compras y Depósito',
+    roleLabel: 'Compras',
+    title: 'Compras y Depósito',
     employeeId: 'emp-006',
     description:
       'Revisión de solicitudes, verificación física de stock, órdenes de compra y recepción de mercadería.'
@@ -55,7 +55,7 @@ export const DEMO_USERS: DemoUserProfile[] = [
     roleId: 'responsable_sector',
     name: 'Martín Duarte',
     roleLabel: 'Responsable de sector',
-    title: 'Encargado de Salón y Servicio',
+    title: 'Supervisión de sector',
     employeeId: 'emp-029',
     managedSectorIds: ['sec-salon', 'sec-barra'],
     description:
@@ -66,7 +66,7 @@ export const DEMO_USERS: DemoUserProfile[] = [
     roleId: 'colaborador',
     name: 'Sofía Paredes',
     roleLabel: 'Colaborador',
-    title: 'Moza — Salón y Servicio',
+    title: 'Equipo operativo',
     employeeId: 'emp-033',
     managedSectorIds: ['sec-salon'],
     description:
@@ -98,6 +98,7 @@ export interface RolePermissions {
   canViewDisciplinary: boolean;
   canApproveLeaves: boolean;
   canAuthorizeLoans: boolean;
+  canViewAnalytics: boolean;
   canViewAdmin: boolean;
 }
 
@@ -126,6 +127,7 @@ const PERMISSION_MATRIX: Record<DemoRoleId, RolePermissions> = {
     canViewDisciplinary: true,
     canApproveLeaves: true,
     canAuthorizeLoans: true,
+    canViewAnalytics: true,
     canViewAdmin: true
   },
   direccion: {
@@ -152,6 +154,7 @@ const PERMISSION_MATRIX: Record<DemoRoleId, RolePermissions> = {
     canViewDisciplinary: true,
     canApproveLeaves: true,
     canAuthorizeLoans: true,
+    canViewAnalytics: true,
     canViewAdmin: true
   },
   gerencia_pablo: {
@@ -178,6 +181,7 @@ const PERMISSION_MATRIX: Record<DemoRoleId, RolePermissions> = {
     canViewDisciplinary: false,
     canApproveLeaves: true,
     canAuthorizeLoans: true,
+    canViewAnalytics: true,
     canViewAdmin: false
   },
   rrhh_raquel: {
@@ -204,6 +208,7 @@ const PERMISSION_MATRIX: Record<DemoRoleId, RolePermissions> = {
     canViewDisciplinary: true,
     canApproveLeaves: true,
     canAuthorizeLoans: true,
+    canViewAnalytics: true,
     canViewAdmin: true
   },
   compras_rene: {
@@ -230,6 +235,7 @@ const PERMISSION_MATRIX: Record<DemoRoleId, RolePermissions> = {
     canViewDisciplinary: false,
     canApproveLeaves: false,
     canAuthorizeLoans: false,
+    canViewAnalytics: true,
     canViewAdmin: false
   },
   responsable_sector: {
@@ -256,6 +262,7 @@ const PERMISSION_MATRIX: Record<DemoRoleId, RolePermissions> = {
     canViewDisciplinary: false,
     canApproveLeaves: false,
     canAuthorizeLoans: false,
+    canViewAnalytics: true,
     canViewAdmin: false
   },
   colaborador: {
@@ -282,6 +289,7 @@ const PERMISSION_MATRIX: Record<DemoRoleId, RolePermissions> = {
     canViewDisciplinary: false,
     canApproveLeaves: false,
     canAuthorizeLoans: false,
+    canViewAnalytics: false,
     canViewAdmin: false
   }
 };

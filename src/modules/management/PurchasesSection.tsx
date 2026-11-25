@@ -303,7 +303,7 @@ export const PurchasesSection: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className="lg:col-span-4 bg-white border border-[#E6E2D8] rounded-lg overflow-hidden">
             <div className="px-4 py-3 border-b border-[#E6E2D8] bg-[#F8F7F4] text-xs font-semibold text-[#1C1917]">
-              Circuito digital: Sector → René → Pablo → Proveedor
+              Circuito digital: Sector → Compras → Operación → Proveedor
             </div>
             <div className="divide-y divide-[#F2EFE9] max-h-[650px] overflow-y-auto">
               {filteredRequests.map((req) => {
@@ -368,7 +368,7 @@ export const PurchasesSection: React.FC = () => {
                       ['solicitado', 'en_verificacion', 'borrador'].includes(selectedRequest.status) && (
                         <button type="button" onClick={openVerifyModal} className={primaryBtnClass}>
                           <ClipboardCheck className="w-4 h-4" />
-                          Verificar stock físico (René)
+                          Verificar stock físico
                         </button>
                       )}
 
@@ -378,7 +378,7 @@ export const PurchasesSection: React.FC = () => {
                       ) && (
                         <button type="button" onClick={openApproveModal} className={primaryBtnClass}>
                           <CheckCircle2 className="w-4 h-4" />
-                          Aprobar / Rechazar (Pablo)
+                          Aprobar / Rechazar
                         </button>
                       )}
 
@@ -934,7 +934,7 @@ export const PurchasesSection: React.FC = () => {
               })}
             </div>
             <div>
-              <label className={labelClass}>Observación general para Gerencia (Pablo)</label>
+              <label className={labelClass}>Observación general para Operación</label>
               <textarea
                 rows={2}
                 value={verifyGeneralNote}
@@ -975,7 +975,7 @@ export const PurchasesSection: React.FC = () => {
                     <div>
                       <div className="font-semibold text-[#1C1917]">{prod?.name}</div>
                       <div className="text-[#5E5851]">
-                        Solic.: {line.requestedQty} · Verif. René: {line.verifiedQty ?? line.requestedQty}{' '}
+                        Solic.: {line.requestedQty} · Verif. Compras: {line.verifiedQty ?? line.requestedQty}{' '}
                         {line.unit}
                       </div>
                     </div>

@@ -15,6 +15,12 @@
   --color-ink-muted: #5E5851;
   --color-burgundy: #7C2D36;
   --color-burgundy-hover: #632129;
+  --color-operational: #168B68;
+  --color-operational-hover: #117053;
+  --color-analytics: #1769C2;
+  --color-analytics-hover: #12549D;
+  --color-warning: #D97706;
+  --color-critical: #C83E43;
   --color-copper: #9A6B3F;
 }
 
@@ -23,6 +29,7 @@
     font-family: var(--font-sans);
     color: var(--color-ink);
     background-color: var(--color-canvas);
+    -webkit-font-smoothing: antialiased;
   }
 
   h1, h2, .font-editorial {

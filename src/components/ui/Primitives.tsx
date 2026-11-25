@@ -10,7 +10,7 @@ interface KpiCardProps {
   value: string;
   subtitle?: string;
   sourceTag?: string;
-  tone?: 'default' | 'positive' | 'warning' | 'danger';
+  tone?: 'default' | 'info' | 'positive' | 'warning' | 'danger';
   onClick?: () => void;
 }
 
@@ -23,13 +23,15 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   onClick
 }) => {
   const toneClass =
-    tone === 'positive'
-      ? 'text-[#15803D]'
-      : tone === 'warning'
-        ? 'text-[#B45309]'
-        : tone === 'danger'
-          ? 'text-[#B91C1C]'
-          : 'text-[#1C1917]';
+    tone === 'info'
+      ? 'text-[#1769C2]'
+      : tone === 'positive'
+        ? 'text-[#168B68]'
+        : tone === 'warning'
+          ? 'text-[#D97706]'
+          : tone === 'danger'
+            ? 'text-[#C83E43]'
+            : 'text-[#141210]';
 
   const Container = onClick ? 'button' : 'div';
   return (
@@ -37,19 +39,23 @@ export const KpiCard: React.FC<KpiCardProps> = ({
       type={onClick ? 'button' : undefined}
       onClick={onClick}
       className={`w-full text-left bg-white border border-[#E6E2D8] rounded-lg p-5 transition-colors duration-150 ${
-        onClick ? 'hover:border-[#9A6B3F] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#7C2D36]' : ''
+        onClick
+          ? 'hover:border-[#9A6B3F] hover:bg-[#FCFBF9] cursor-pointer focus-visible:outline-2 focus-visible:outline-[#7C2D36]'
+          : ''
       }`}
     >
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-xs font-medium text-[#5E5851]">{label}</span>
+        <span className="text-[13px] font-medium text-[#5E5851] leading-snug">{label}</span>
         {sourceTag && (
-          <span className="text-[11px] text-[#8C847A] whitespace-nowrap shrink-0">{sourceTag}</span>
+          <span className="text-[11px] font-medium text-[#8C847A] whitespace-nowrap shrink-0">
+            {sourceTag}
+          </span>
         )}
       </div>
-      <div className={`mt-2 text-2xl font-semibold font-mono tabular-nums tracking-tight ${toneClass}`}>
+      <div className={`mt-2.5 text-2xl sm:text-[1.65rem] font-semibold font-mono tabular-nums tracking-tight leading-none ${toneClass}`}>
         {value}
       </div>
-      {subtitle && <p className="mt-1.5 text-xs text-[#5E5851] leading-relaxed">{subtitle}</p>}
+      {subtitle && <p className="mt-2 text-xs text-[#6B635B] leading-relaxed">{subtitle}</p>}
     </Container>
   );
 };
@@ -57,22 +63,24 @@ export const KpiCard: React.FC<KpiCardProps> = ({
 // ==========================================
 // ZERO-PILL STATUS TEXT (Clean unboxed semantic text + explicit label)
 // ==========================================
-export type StatusTone = 'neutral' | 'positive' | 'warning' | 'danger' | 'accent';
+export type StatusTone = 'neutral' | 'info' | 'positive' | 'warning' | 'danger' | 'accent';
 
 export const StatusText: React.FC<{ label: string; tone?: StatusTone }> = ({
   label,
   tone = 'neutral'
 }) => {
   const color =
-    tone === 'positive'
-      ? 'text-[#15803D]'
-      : tone === 'warning'
-        ? 'text-[#B45309]'
-        : tone === 'danger'
-          ? 'text-[#B91C1C]'
-          : tone === 'accent'
-            ? 'text-[#7C2D36]'
-            : 'text-[#5E5851]';
+    tone === 'info'
+      ? 'text-[#1769C2]'
+      : tone === 'positive'
+        ? 'text-[#168B68]'
+        : tone === 'warning'
+          ? 'text-[#D97706]'
+          : tone === 'danger'
+            ? 'text-[#C83E43]'
+            : tone === 'accent'
+              ? 'text-[#7C2D36]'
+              : 'text-[#5E5851]';
   return <span className={`text-xs font-semibold whitespace-nowrap ${color}`}>{label}</span>;
 };
 
@@ -85,11 +93,13 @@ export const SectionHeader: React.FC<{
   actions?: React.ReactNode;
 }> = ({ title, subtitle, actions }) => (
   <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-5 border-b border-[#E6E2D8]">
-    <div>
-      <h1 className="text-2xl sm:text-3xl font-semibold text-[#1C1917] tracking-tight leading-tight">
+    <div className="min-w-0">
+      <h1 className="text-3xl sm:text-[2.2rem] font-editorial font-bold text-[#141210] tracking-tight leading-[1.12]">
         {title}
       </h1>
-      {subtitle && <p className="mt-1 text-sm text-[#5E5851] max-w-3xl">{subtitle}</p>}
+      {subtitle && (
+        <p className="mt-1.5 text-sm text-[#6B635B] max-w-2xl leading-relaxed">{subtitle}</p>
+      )}
     </div>
     {actions && <div className="flex flex-wrap items-center gap-2.5 shrink-0">{actions}</div>}
   </div>
@@ -212,7 +222,7 @@ export const ConfirmDialog: React.FC<{
         type="button"
         onClick={onConfirm}
         className={`px-4 py-2 text-sm font-medium text-white rounded-md transition-colors cursor-pointer ${
-          danger ? 'bg-[#B91C1C] hover:bg-[#991B1B]' : 'bg-[#7C2D36] hover:bg-[#632129]'
+          danger ? 'bg-[#C83E43] hover:bg-[#A62E32]' : 'bg-[#168B68] hover:bg-[#117053]'
         }`}
       >
         {confirmLabel}
@@ -286,14 +296,40 @@ export const ToastContainer: React.FC<{
   );
 };
 
+// Shared typography scale helpers
+export const sectionTitleClass =
+  'text-xl sm:text-[1.45rem] font-editorial font-bold text-[#141210] tracking-tight leading-snug';
+
+export const cardTitleClass =
+  'text-base font-bold text-[#141210] leading-snug';
+
+export const metaTextClass = 'text-xs text-[#6B635B] leading-relaxed';
+
 // Shared form input styling helpers
 export const inputClass =
-  'w-full rounded-md border border-[#D6D0C4] bg-white px-3 py-2 text-sm text-[#1C1917] placeholder:text-[#9A938A] focus:border-[#7C2D36] focus:outline-none focus:ring-1 focus:ring-[#7C2D36]';
+  'w-full rounded-md border border-[#D6D0C4] bg-white px-3 py-2 text-sm text-[#1C1917] placeholder:text-[#9A938A] focus:border-[#168B68] focus:outline-none focus:ring-1 focus:ring-[#168B68]';
 
-export const labelClass = 'block text-xs font-medium text-[#5E5851] mb-1';
+export const labelClass = 'block text-xs font-semibold text-[#44403C] mb-1';
 
-export const primaryBtnClass =
-  'inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-[#7C2D36] hover:bg-[#632129] rounded-md transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+// ==========================================
+// GLOBAL BUTTON SEMANTIC SYSTEM
+// A. Operational Action (Vibrant Green) — create, edit, load, execute forms & operational tasks
+// B. Analytical Navigation (Vibrant Blue) — dashboards, KPIs, comparisons, insights, menu engineering
+// C. Neutral / Support — cancel, close, expand/collapse, export, secondary helpers
+// ==========================================
+export const operationalBtnClass =
+  'inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#168B68] hover:bg-[#117053] rounded-md transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#168B68] disabled:opacity-50 disabled:cursor-not-allowed';
+
+export const operationalSecondaryBtnClass =
+  'inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-[#117053] bg-[#168B68]/[0.08] border border-[#168B68]/35 hover:bg-[#168B68]/[0.15] rounded-md transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#168B68] disabled:opacity-50 disabled:cursor-not-allowed';
+
+export const analyticsBtnClass =
+  'inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#1769C2] hover:bg-[#12549D] rounded-md transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1769C2] disabled:opacity-50 disabled:cursor-not-allowed';
+
+export const analyticsLinkClass =
+  'inline-flex items-center gap-1 text-xs font-semibold text-[#1769C2] hover:text-[#12549D] hover:underline whitespace-nowrap shrink-0 cursor-pointer transition-colors';
+
+export const primaryBtnClass = operationalBtnClass;
 
 export const secondaryBtnClass =
-  'inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-sm font-medium text-[#1C1917] bg-white border border-[#D6D0C4] hover:bg-[#F2EFE9] rounded-md transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+  'inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-sm font-medium text-[#44403C] bg-white border border-[#D6D0C4] hover:bg-[#F2EFE9] rounded-md transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5E5851] disabled:opacity-50 disabled:cursor-not-allowed';

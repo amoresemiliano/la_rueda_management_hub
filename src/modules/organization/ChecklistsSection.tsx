@@ -1,9 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ClipboardCheck, Plus } from 'lucide-react';
 import {
+  analyticsLinkClass,
   inputClass,
   labelClass,
   Modal,
+  operationalSecondaryBtnClass,
   primaryBtnClass,
   secondaryBtnClass,
   StatusText
@@ -24,6 +26,8 @@ export const ChecklistsSection: React.FC = () => {
     data,
     activeUser,
     permissions,
+    nav,
+    navigate,
     saveChecklistExecution,
     verifyChecklistExecution,
     disputeChecklistExecution,
@@ -31,9 +35,22 @@ export const ChecklistsSection: React.FC = () => {
   } = useAppStore();
 
   const [sectorFilter, setSectorFilter] = useState('todos');
+  const [statusFilter, setStatusFilter] = useState<string>(nav.checklistStatusFilter ?? 'todos');
   const [selectedExecutionId, setSelectedExecutionId] = useState<string>(
-    data.checklistExecutions[0]?.id ?? ''
+    nav.selectedExecutionId ?? data.checklistExecutions[0]?.id ?? ''
   );
+
+  useEffect(() => {
+    if (nav.checklistStatusFilter !== undefined) {
+      setStatusFilter(nav.checklistStatusFilter);
+    }
+  }, [nav.checklistStatusFilter]);
+
+  useEffect(() => {
+    if (nav.selectedExecutionId) {
+      setSelectedExecutionId(nav.selectedExecutionId);
+    }
+  }, [nav.selectedExecutionId]);
 
   // New / Edit Execution Modal
   const [runModalOpen, setRunModalOpen] = useState(false);
@@ -58,14 +75,18 @@ export const ChecklistsSection: React.FC = () => {
 
   const filteredExecutions = useMemo(
     () =>
-      data.checklistExecutions.filter(
-        (ex) => sectorFilter === 'todos' || ex.sectorId === sectorFilter
-      ),
-    [data.checklistExecutions, sectorFilter]
+      data.checklistExecutions.filter((ex) => {
+        if (sectorFilter !== 'todos' && ex.sectorId !== sectorFilter) return false;
+        if (statusFilter !== 'todos' && ex.verificationStatus !== statusFilter) return false;
+        return true;
+      }),
+    [data.checklistExecutions, sectorFilter, statusFilter]
   );
 
   const selectedExecution: ChecklistExecution | undefined =
-    data.checklistExecutions.find((e) => e.id === selectedExecutionId) ?? filteredExecutions[0];
+    filteredExecutions.find((e) => e.id === selectedExecutionId) ??
+    filteredExecutions[0] ??
+    data.checklistExecutions.find((e) => e.id === selectedExecutionId);
 
   const selectedTemplate = useMemo(
     () =>
@@ -160,7 +181,7 @@ export const ChecklistsSection: React.FC = () => {
     <div className="space-y-6">
       {/* Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <select
             value={sectorFilter}
             onChange={(e) => setSectorFilter(e.target.value)}
@@ -173,9 +194,26 @@ export const ChecklistsSection: React.FC = () => {
               </option>
             ))}
           </select>
-          <span className="text-xs text-[#5E5851] hidden md:inline">
-            Trazabilidad explícita: Asignado / Realizado / Registrado / Verificado
-          </span>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-md border border-[#D6D0C4] bg-white px-3 py-2 text-sm text-[#1C1917]"
+          >
+            <option value="todos">Todos los estados</option>
+            <option value="enviado">Pendientes de verificación</option>
+            <option value="verificado">Verificados</option>
+            <option value="observado_discrepancia">Con discrepancia</option>
+            <option value="borrador">Borradores</option>
+          </select>
+          {permissions.canViewAnalytics && (
+            <button
+              type="button"
+              onClick={() => navigate({ module: 'analitica', section: 'discrepancias' })}
+              className={`${analyticsLinkClass} ml-1`}
+            >
+              Ver discrepancias en Analítica →
+            </button>
+          )}
         </div>
 
         {permissions.canExecuteChecklists && (
@@ -268,9 +306,9 @@ export const ChecklistsSection: React.FC = () => {
                         setDisputedTaskLabel(firstField?.label ?? selectedTemplate.title);
                         setDisputeModalOpen(true);
                       }}
-                      className={secondaryBtnClass}
+                      className={operationalSecondaryBtnClass}
                     >
-                      <AlertTriangle className="w-4 h-4 text-[#B45309]" />
+                      <AlertTriangle className="w-4 h-4" />
                       Reportar discrepancia
                     </button>
                   </div>

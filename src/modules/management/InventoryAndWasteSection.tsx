@@ -1,21 +1,15 @@
-import React, { useMemo, useState } from 'react';
-import { ArrowDownUp, Plus, Scale, Trash2 } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowDownUp, BarChart3, Plus, Scale } from 'lucide-react';
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from 'recharts';
-import {
+  analyticsLinkClass,
   inputClass,
   KpiCard,
   labelClass,
   Modal,
+  operationalSecondaryBtnClass,
   primaryBtnClass,
   secondaryBtnClass,
+  sectionTitleClass,
   StatusText
 } from '../../components/ui/Primitives';
 import { InventoryMovementType, LossType, WasteReason } from '../../domain/types';
@@ -54,11 +48,17 @@ const WASTE_REASON_LABELS: Record<WasteReason, string> = {
 };
 
 export const InventorySection: React.FC = () => {
-  const { data, permissions, registerInventoryMovement } = useAppStore();
+  const { data, permissions, nav, registerInventoryMovement } = useAppStore();
   const [subView, setSubView] = useState<'catalogo' | 'movimientos'>('catalogo');
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('todas');
-  const [onlyCritical, setOnlyCritical] = useState(false);
+  const [onlyCritical, setOnlyCritical] = useState(Boolean(nav.inventoryOnlyCritical));
+
+  useEffect(() => {
+    if (nav.inventoryOnlyCritical !== undefined) {
+      setOnlyCritical(nav.inventoryOnlyCritical);
+    }
+  }, [nav.inventoryOnlyCritical]);
 
   // Movement modal
   const [movModalOpen, setMovModalOpen] = useState(false);
@@ -444,7 +444,7 @@ export const InventorySection: React.FC = () => {
 // DEDICATED MERMAS Y DESPERDICIOS INTERFACE (Scenarios 5 & 6)
 // ==========================================
 export const WasteLossSection: React.FC = () => {
-  const { data, permissions, registerLossEvent } = useAppStore();
+  const { data, permissions, navigate, registerLossEvent } = useAppStore();
   const [typeFilter, setTypeFilter] = useState<'todos' | LossType>('todos');
   const [modalType, setModalType] = useState<LossType | null>(null);
 
@@ -548,30 +548,14 @@ export const WasteLossSection: React.FC = () => {
         ? mermas.reduce((acc, l) => acc + (l.yieldPercentage ?? 0), 0) / mermas.length
         : null;
 
-    const bySector = data.sectors
-      .map((s) => {
-        const sEvents = data.lossEvents.filter((l) => l.sectorId === s.id);
-        return {
-          sector: s.code,
-          mermaArs: sEvents
-            .filter((e) => e.type === 'merma')
-            .reduce((a, b) => a + (b.estimatedImpactArs ?? 0), 0),
-          desperdicioArs: sEvents
-            .filter((e) => e.type === 'desperdicio')
-            .reduce((a, b) => a + (b.estimatedImpactArs ?? 0), 0)
-        };
-      })
-      .filter((r) => r.mermaArs > 0 || r.desperdicioArs > 0);
-
     return {
       mermaCount: mermas.length,
       desperdicioCount: desperdicios.length,
       mermaValue,
       desperdicioValue,
-      avgYield,
-      bySector
+      avgYield
     };
-  }, [data.lossEvents, data.sectors]);
+  }, [data.lossEvents]);
 
   const filteredEvents = data.lossEvents.filter(
     (l) => typeFilter === 'todos' || l.type === typeFilter
@@ -582,20 +566,20 @@ export const WasteLossSection: React.FC = () => {
       {/* Action Header (Mobile-friendly primary registration buttons) */}
       <div className="bg-white border border-[#E6E2D8] rounded-lg p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-editorial font-semibold text-[#1C1917]">
+          <h2 className={sectionTitleClass}>
             Control diferenciado de Mermas y Desperdicios
-          </h3>
-          <p className="text-xs text-[#5E5851] mt-0.5">
-            La <strong>Merma</strong> mide rendimiento normal de limpieza/desposte; el{' '}
-            <strong>Desperdicio</strong> registra pérdidas evitables. Ambos se vinculan 1:1 a inventario sin doble conteo.
+          </h2>
+          <p className="text-xs text-[#6B635B] mt-1">
+            La <strong>Merma</strong> mide rendimiento de limpieza/desposte; el{' '}
+            <strong>Desperdicio</strong> registra pérdidas evitables con baja trazable 1:1 en inventario.
           </p>
         </div>
 
         {permissions.canRegisterLosses && (
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <button type="button" onClick={() => openModal('merma')} className={secondaryBtnClass}>
-              <Scale className="w-4 h-4 text-[#9A6B3F]" />
-              Registrar Merma (rendimiento)
+            <button type="button" onClick={() => openModal('merma')} className={operationalSecondaryBtnClass}>
+              <Scale className="w-4 h-4" />
+              Registrar Merma
             </button>
             <button type="button" onClick={() => openModal('desperdicio')} className={primaryBtnClass}>
               <Plus className="w-4 h-4" />
@@ -631,31 +615,27 @@ export const WasteLossSection: React.FC = () => {
         />
       </div>
 
-      {/* Breakdown Chart + Table */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-4 bg-white border border-[#E6E2D8] rounded-lg p-5">
-          <h4 className="text-sm font-semibold text-[#1C1917]">Impacto por sector (ARS)</h4>
-          <p className="text-xs text-[#5E5851]">Desperdicio vs Merma reportados por separado</p>
-          <div className="mt-4 h-60">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={analytics.bySector}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#EFECE5" vertical={false} />
-                <XAxis dataKey="sector" tick={{ fontSize: 11, fill: '#5E5851' }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={(v) => `$${Math.round(v / 1000)}k`} tick={{ fontSize: 11, fill: '#5E5851' }} axisLine={false} tickLine={false} width={44} />
-                <Tooltip formatter={(v: unknown) => formatARS(Number(v))} />
-                <Bar dataKey="desperdicioArs" name="Desperdicio" fill="#B91C1C" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="mermaArs" name="Merma proceso" fill="#9A6B3F" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="lg:col-span-8 bg-white border border-[#E6E2D8] rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#E6E2D8] bg-[#F8F7F4] flex flex-wrap items-center justify-between gap-2">
+      {/* Operational Log (Detailed economic sector comparison chart moved to Analítica / Gestión / Mermas) */}
+      <div className="bg-white border border-[#E6E2D8] rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#E6E2D8] bg-[#F8F7F4] flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <span className="text-xs font-semibold text-[#1C1917]">
               Registro cronológico de pérdidas ({filteredEvents.length})
             </span>
-            <div className="flex items-center gap-1.5">
+            {permissions.canViewAnalytics && (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate({ module: 'analitica', section: 'gestion', analyticsSubTab: 'mermas' })
+                }
+                className={analyticsLinkClass}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                Ver análisis económico en Analítica →
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
               {(['todos', 'desperdicio', 'merma'] as const).map((t) => (
                 <button
                   key={t}
@@ -725,7 +705,6 @@ export const WasteLossSection: React.FC = () => {
             })}
           </div>
         </div>
-      </div>
 
       {/* Registration Modal (Merma vs Desperdicio) */}
       <Modal

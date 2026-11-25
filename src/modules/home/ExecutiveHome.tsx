@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { ArrowRight, Building2, Briefcase, Users } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -9,7 +8,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
-import { KpiCard, StatusText } from '../../components/ui/Primitives';
+import { analyticsLinkClass, KpiCard, sectionTitleClass, StatusText } from '../../components/ui/Primitives';
 import { useAppStore } from '../../services/store';
 import {
   addDaysISO,
@@ -20,6 +19,8 @@ import {
   formatPercent,
   todayISO
 } from '../../utils/formatters';
+
+const LOGO_SRC = '/assets/aistudio/logo_la_rueda_transparent.png';
 
 export const ExecutiveHome: React.FC = () => {
   const { data, activeUser, permissions, navigate } = useAppStore();
@@ -32,7 +33,9 @@ export const ExecutiveHome: React.FC = () => {
     );
     const revenue7d = recentSales.reduce((acc, s) => acc + s.totalRevenueArs, 0);
     const guests7d = recentSales.reduce((acc, s) => acc + s.guestsCount, 0);
+    const tickets7d = recentSales.reduce((acc, s) => acc + s.ticketsCount, 0);
     const avgGuestsPerDay = guests7d / 7;
+    const avgTicket7d = tickets7d > 0 ? revenue7d / tickets7d : 0;
 
     // Daily trend for chart
     const dailyMap = new Map<string, { date: string; facturacion: number; comensales: number }>();
@@ -65,6 +68,9 @@ export const ExecutiveHome: React.FC = () => {
     const verifiedChecklists = data.checklistExecutions.filter(
       (c) => c.verificationStatus === 'verificado'
     );
+    const pendingVerificationChecklists = data.checklistExecutions.filter(
+      (c) => c.verificationStatus === 'enviado'
+    );
     const verifiedRate =
       submittedChecklists.length > 0
         ? (verifiedChecklists.length / submittedChecklists.length) * 100
@@ -77,28 +83,38 @@ export const ExecutiveHome: React.FC = () => {
     );
     const criticalStock = data.products.filter((p) => p.active && p.currentStock < p.minStock);
 
+    // Leaves
+    const pendingLeaves = data.leaveRequests.filter((l) => l.status === 'pendiente');
+
     // Today forecast
     const todayForecast = data.demandForecasts.find((f) => f.operationalDate === today);
 
-    // Waste 7d
+    // Waste & Merma 7d
     const waste7dArs = data.lossEvents
       .filter((l) => l.type === 'desperdicio' && l.operationalDate >= sevenDaysAgo)
+      .reduce((acc, l) => acc + (l.estimatedImpactArs ?? 0), 0);
+    const merma7dArs = data.lossEvents
+      .filter((l) => l.type === 'merma' && l.operationalDate >= sevenDaysAgo)
       .reduce((acc, l) => acc + (l.estimatedImpactArs ?? 0), 0);
 
     return {
       revenue7d,
       avgGuestsPerDay,
+      avgTicket7d,
       chartData,
       scheduledToday,
       absencesToday,
       verifiedRate,
       submittedCount: submittedChecklists.length,
       verifiedCount: verifiedChecklists.length,
+      pendingVerifCount: pendingVerificationChecklists.length,
       openDiscrepancies,
       pendingPurchases,
       criticalStock,
+      pendingLeaves,
       todayForecast,
-      waste7dArs
+      waste7dArs,
+      merma7dArs
     };
   }, [data, today]);
 
@@ -124,189 +140,195 @@ export const ExecutiveHome: React.FC = () => {
   }, [data.sectors, data.shiftAssignments, today]);
 
   return (
-    <div className="space-y-8">
-      {/* Executive Welcome Header */}
-      <section className="bg-white border border-[#E6E2D8] rounded-lg p-6 sm:p-7">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-          <div>
-            <div className="text-xs text-[#5E5851] flex flex-wrap items-center gap-2">
-              <span>{data.organization.location}</span>
-              <span aria-hidden="true">·</span>
-              <span>Capacidad simultánea: {data.organization.simultaneousCapacity} cubiertos</span>
-              <span aria-hidden="true">·</span>
-              <span className="font-mono tabular-nums">Jornada {formatDateAR(today)}</span>
-              <span aria-hidden="true">·</span>
-              <span className="text-[#7C2D36] font-medium">Modo demostración</span>
+    <div className="space-y-6">
+      {/* Clean Executive Header (Redundant module shortcut cards removed) */}
+      <section className="bg-white border border-[#E6E2D8] rounded-lg p-5 sm:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div className="flex items-start sm:items-center gap-4">
+            <img
+              src={LOGO_SRC}
+              alt="Logo Restaurant La Rueda 1975"
+              className="w-16 h-16 object-contain shrink-0 drop-shadow-xs"
+            />
+            <div>
+              <div className="text-xs text-[#6B635B] flex flex-wrap items-center gap-2">
+                <span>{data.organization.location}</span>
+                <span aria-hidden="true">·</span>
+                <span>{data.organization.simultaneousCapacity} cubiertos</span>
+                <span aria-hidden="true">·</span>
+                <span className="font-mono tabular-nums">{formatDateAR(today)}</span>
+              </div>
+              <h1 className="mt-1 text-3xl sm:text-[2.2rem] font-editorial font-bold text-[#141210] tracking-tight leading-[1.12]">
+                Resumen Ejecutivo
+              </h1>
+              <p className="mt-1 text-sm text-[#6B635B]">
+                Sesión activa:{' '}
+                <strong className="text-[#141210] font-semibold">
+                  {activeUser.roleId === 'admin_vegen' ? 'Administrador VEGEN' : activeUser.roleLabel}
+                </strong>
+              </p>
             </div>
-            <h1 className="mt-2 text-3xl sm:text-4xl font-semibold text-[#1C1917] tracking-tight">
-              La Rueda 1975 — Centro de Gestión
-            </h1>
-            <p className="mt-2 text-sm text-[#5E5851] max-w-2xl leading-relaxed">
-              Sesión activa como <strong className="text-[#1C1917] font-medium">{activeUser.name}</strong> ({activeUser.roleLabel}).
-              Ecosistema unificado de Organización, Gestión y Personal con datos sintéticos trazables en tiempo real.
-            </p>
           </div>
 
           {metrics.todayForecast && (
-            <div className="lg:text-right border-t lg:border-t-0 lg:border-l border-[#E6E2D8] pt-4 lg:pt-0 lg:pl-6 shrink-0">
-              <div className="text-xs text-[#5E5851]">Demanda esperada hoy</div>
-              <div className="mt-1 text-2xl font-mono font-semibold tabular-nums text-[#1C1917]">
+            <button
+              type="button"
+              onClick={() =>
+                permissions.canViewFinancialMetrics
+                  ? navigate({ module: 'gestion', section: 'planificacion' })
+                  : navigate({ module: 'organizacion', section: 'dotacion' })
+              }
+              className="text-left lg:text-right border-t lg:border-t-0 lg:border-l border-[#E6E2D8] pt-4 lg:pt-0 lg:pl-6 shrink-0 cursor-pointer group"
+            >
+              <div className="text-xs font-semibold text-[#5E5851]">Comensales esperados hoy</div>
+              <div className="mt-1 text-2xl sm:text-[1.9rem] font-mono font-bold tabular-nums leading-none text-[#1769C2] group-hover:text-[#12549D] transition-colors">
                 {formatIntAR(metrics.todayForecast.expectedGuests)} comensales
               </div>
-              <div className="mt-0.5 text-xs text-[#5E5851]">
+              <div className="mt-1.5 text-xs text-[#6B635B]">
                 {metrics.todayForecast.confirmedReservations} reservas · {metrics.todayForecast.tourGroupsCount} grupos turísticos
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Quick Module Links */}
-        <div className="mt-6 pt-5 border-t border-[#E6E2D8] grid grid-cols-1 md:grid-cols-3 gap-4">
-          {permissions.canViewOrganization && (
-            <button
-              type="button"
-              onClick={() => navigate({ module: 'organizacion', section: 'organigrama' })}
-              className="group text-left p-4 rounded-md border border-[#E6E2D8] hover:border-[#7C2D36] bg-[#F8F7F4]/60 hover:bg-white transition-colors cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm font-semibold text-[#1C1917]">
-                  <Building2 className="w-4 h-4 text-[#7C2D36]" />
-                  Organización
-                </span>
-                <ArrowRight className="w-4 h-4 text-[#5E5851] group-hover:text-[#7C2D36] transition-colors" />
-              </div>
-              <p className="mt-1.5 text-xs text-[#5E5851]">
-                Quién hace qué, cuándo y cómo. Organigrama, turnos, checklists verificados y manuales.
-              </p>
-            </button>
-          )}
-
-          {permissions.canViewManagement && (
-            <button
-              type="button"
-              onClick={() => navigate({ module: 'gestion', section: 'dashboard' })}
-              className="group text-left p-4 rounded-md border border-[#E6E2D8] hover:border-[#7C2D36] bg-[#F8F7F4]/60 hover:bg-white transition-colors cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm font-semibold text-[#1C1917]">
-                  <Briefcase className="w-4 h-4 text-[#7C2D36]" />
-                  Gestión
-                </span>
-                <ArrowRight className="w-4 h-4 text-[#5E5851] group-hover:text-[#7C2D36] transition-colors" />
-              </div>
-              <p className="mt-1.5 text-xs text-[#5E5851]">
-                Ventas, ingeniería de menú, compras verificadas, inventarios, mermas e importación.
-              </p>
-            </button>
-          )}
-
-          {permissions.canViewPersonnel && (
-            <button
-              type="button"
-              onClick={() => navigate({ module: 'personal', section: 'directorio' })}
-              className="group text-left p-4 rounded-md border border-[#E6E2D8] hover:border-[#7C2D36] bg-[#F8F7F4]/60 hover:bg-white transition-colors cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-sm font-semibold text-[#1C1917]">
-                  <Users className="w-4 h-4 text-[#7C2D36]" />
-                  Personal
-                </span>
-                <ArrowRight className="w-4 h-4 text-[#5E5851] group-hover:text-[#7C2D36] transition-colors" />
-              </div>
-              <p className="mt-1.5 text-xs text-[#5E5851]">
-                {data.employees.length} legajos digitales, trayectoria histórica, asistencias, licencias y pre-liquidación.
-              </p>
             </button>
           )}
         </div>
       </section>
 
-      {/* Primary Derived KPI Strip */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {permissions.canViewFinancialMetrics ? (
+      {/* Primary Interactive KPI Overview (Single click/tap with preserved filter context) */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {permissions.canViewFinancialMetrics && (
           <KpiCard
-            label="Facturación (últimos 7 días)"
+            label="Facturación (7 días)"
             value={formatARS(metrics.revenue7d)}
-            subtitle={`Promedio diario: ${formatIntAR(metrics.avgGuestsPerDay)} comensales`}
-            sourceTag="Demo / MaxiRest"
-            onClick={() => navigate({ module: 'gestion', section: 'ventas' })}
-          />
-        ) : (
-          <KpiCard
-            label="Dotación total registrada"
-            value={`${data.employees.filter((e) => e.status !== 'egresado').length} personas`}
-            subtitle={`${data.sectors.length} sectores operativos activos`}
-            sourceTag="Personal"
-            onClick={permissions.canViewPersonnel ? () => navigate({ module: 'personal', section: 'directorio' }) : undefined}
+            subtitle={`Ticket prom. ${formatARS(metrics.avgTicket7d)} · ${formatIntAR(metrics.avgGuestsPerDay)} com./día`}
+            tone="info"
+            sourceTag="Analítica · Ventas"
+            onClick={() =>
+              navigate({ module: 'analitica', section: 'gestion', analyticsSubTab: 'ventas' })
+            }
           />
         )}
 
         <KpiCard
           label="Dotación programada hoy"
           value={`${metrics.scheduledToday} / ${data.employees.length}`}
-          subtitle={
-            metrics.absencesToday > 0
-              ? `${metrics.absencesToday} ausencia(s) registrada(s) hoy`
-              : 'Sin ausencias registradas hoy'
-          }
-          tone={metrics.absencesToday > 0 ? 'warning' : 'positive'}
+          subtitle="Planilla diaria de turnos"
+          tone="positive"
           sourceTag="Organización"
           onClick={() => navigate({ module: 'organizacion', section: 'dotacion' })}
         />
 
         <KpiCard
-          label="Checklists verificados"
-          value={formatPercent(metrics.verifiedRate, 0)}
-          subtitle={`${metrics.verifiedCount} de ${metrics.submittedCount} enviados · ${metrics.openDiscrepancies.length} discrepancia(s)`}
-          tone={metrics.openDiscrepancies.length > 0 ? 'warning' : 'positive'}
-          sourceTag="Cumplimiento"
-          onClick={() => navigate({ module: 'organizacion', section: 'checklists' })}
+          label="Ausencias hoy"
+          value={String(metrics.absencesToday)}
+          subtitle={
+            metrics.absencesToday > 0
+              ? 'Sincronizadas con parte de asistencia'
+              : 'Sin ausencias registradas en la jornada'
+          }
+          tone={metrics.absencesToday > 0 ? 'danger' : 'positive'}
+          sourceTag="Personal"
+          onClick={() =>
+            permissions.canViewPersonnel
+              ? navigate({ module: 'personal', section: 'asistencia' })
+              : navigate({ module: 'organizacion', section: 'dotacion' })
+          }
         />
 
-        {permissions.canViewManagement ? (
+        <KpiCard
+          label="Checklists y verificaciones"
+          value={`${formatPercent(metrics.verifiedRate, 0)} verif.`}
+          subtitle={`${metrics.pendingVerifCount} pendiente(s) de verificación · ${metrics.openDiscrepancies.length} discrepancia(s)`}
+          tone={metrics.pendingVerifCount > 0 || metrics.openDiscrepancies.length > 0 ? 'warning' : 'positive'}
+          sourceTag="Procedimientos"
+          onClick={() =>
+            navigate({
+              module: 'organizacion',
+              section: 'checklists',
+              checklistStatusFilter: metrics.pendingVerifCount > 0 ? 'enviado' : 'todos'
+            })
+          }
+        />
+
+        {permissions.canViewManagement && (
           <KpiCard
-            label="Compras y stock crítico"
-            value={`${metrics.pendingPurchases.length} pedidos · ${metrics.criticalStock.length} ítems`}
-            subtitle={`Desperdicios últimos 7 días: ${formatARS(metrics.waste7dArs)}`}
-            tone={metrics.criticalStock.length > 5 ? 'warning' : 'default'}
-            sourceTag="Gestión"
+            label="Compras pendientes"
+            value={`${metrics.pendingPurchases.length} solicitud(es)`}
+            subtitle="En verificación de Compras o aprobación Gerencia"
+            tone={metrics.pendingPurchases.length > 0 ? 'warning' : 'positive'}
+            sourceTag="Gestión · Compras"
             onClick={() => navigate({ module: 'gestion', section: 'compras' })}
           />
-        ) : (
+        )}
+
+        {permissions.canManageInventory && (
+          <KpiCard
+            label="Stock crítico"
+            value={`${metrics.criticalStock.length} insumos`}
+            subtitle="Por debajo del mínimo operativo"
+            tone={metrics.criticalStock.length > 0 ? 'danger' : 'positive'}
+            sourceTag="Gestión · Inventarios"
+            onClick={() =>
+              navigate({
+                module: 'gestion',
+                section: 'inventario',
+                inventoryOnlyCritical: true
+              })
+            }
+          />
+        )}
+
+        {permissions.canViewManagement && (
+          <KpiCard
+            label="Mermas y desperdicios (7d)"
+            value={formatARS(metrics.waste7dArs)}
+            subtitle={`Desperdicio evitable · Merma proceso: ${formatARS(metrics.merma7dArs)}`}
+            tone={metrics.waste7dArs > 50000 ? 'danger' : 'warning'}
+            sourceTag="Analítica · Mermas"
+            onClick={() =>
+              permissions.canViewAnalytics
+                ? navigate({ module: 'analitica', section: 'gestion', analyticsSubTab: 'mermas' })
+                : navigate({ module: 'gestion', section: 'mermas' })
+            }
+          />
+        )}
+
+        {permissions.canViewPersonnel && (
           <KpiCard
             label="Licencias pendientes"
-            value={`${data.leaveRequests.filter((l) => l.status === 'pendiente').length}`}
+            value={String(metrics.pendingLeaves.length)}
             subtitle="Solicitudes de vacaciones y francos"
-            sourceTag="Personal"
-            onClick={permissions.canViewPersonnel ? () => navigate({ module: 'personal', section: 'vacaciones' }) : undefined}
+            tone={metrics.pendingLeaves.length > 0 ? 'warning' : 'positive'}
+            sourceTag="Personal · Vacaciones"
+            onClick={() => navigate({ module: 'personal', section: 'vacaciones' })}
           />
         )}
       </section>
 
-      {/* Main 2-Column Analytical & Operational Workspace */}
+      {/* Main 2-Column Lower Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left 7 cols: Sales Trend or Staffing Overview */}
+        {/* Left 7 cols: Sales Snapshot + Today's Staffing Coverage */}
         <div className="lg:col-span-7 space-y-6">
           {permissions.canViewFinancialMetrics && (
             <div className="bg-white border border-[#E6E2D8] rounded-lg p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-[#EFECE5]">
                 <div>
-                  <h2 className="text-xl font-semibold text-[#1C1917]">
+                  <h2 className={sectionTitleClass}>
                     Facturación diaria — últimos 7 días
                   </h2>
-                  <p className="text-xs text-[#5E5851]">
-                    Derivado de registros de ventas sintéticas y lotes importados (ARS)
+                  <p className="text-xs text-[#6B635B] mt-0.5">
+                    Tendencias, categorías e ingeniería de menú disponibles en Analítica
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => navigate({ module: 'gestion', section: 'dashboard' })}
-                  className="text-xs font-medium text-[#7C2D36] hover:underline cursor-pointer whitespace-nowrap"
+                  onClick={() =>
+                    navigate({ module: 'analitica', section: 'gestion', analyticsSubTab: 'ventas' })
+                  }
+                  className={analyticsLinkClass}
                 >
-                  Abrir tablero gerencial →
+                  Abrir Analítica de Gestión →
                 </button>
               </div>
-              <div className="mt-5 h-64 w-full">
+              <div className="mt-5 h-56 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={metrics.chartData} margin={{ top: 6, right: 12, left: 4, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#EFECE5" vertical={false} />
@@ -332,7 +354,7 @@ export const ExecutiveHome: React.FC = () => {
                         fontSize: '12px'
                       }}
                     />
-                    <Bar dataKey="facturacion" fill="#7C2D36" radius={[3, 3, 0, 0]} maxBarSize={38} />
+                    <Bar dataKey="facturacion" fill="#1769C2" radius={[4, 4, 0, 0]} maxBarSize={38} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -343,15 +365,15 @@ export const ExecutiveHome: React.FC = () => {
           <div className="bg-white border border-[#E6E2D8] rounded-lg p-6">
             <div className="flex items-center justify-between gap-2 pb-4 border-b border-[#EFECE5]">
               <div>
-                <h2 className="text-xl font-semibold text-[#1C1917]">Cobertura de dotación hoy</h2>
-                <p className="text-xs text-[#5E5851]">
-                  Comparativa de personal programado/presente frente al mínimo diario por sector
+                <h2 className={sectionTitleClass}>Cobertura de dotación hoy</h2>
+                <p className="text-xs text-[#6B635B] mt-0.5">
+                  Personal programado frente al mínimo diario por sector
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => navigate({ module: 'organizacion', section: 'dotacion' })}
-                className="text-xs font-medium text-[#7C2D36] hover:underline cursor-pointer whitespace-nowrap"
+                className="text-xs font-semibold text-[#168B68] hover:text-[#117053] hover:underline cursor-pointer whitespace-nowrap"
               >
                 Gestionar turnos →
               </button>
@@ -406,11 +428,10 @@ export const ExecutiveHome: React.FC = () => {
           </div>
         </div>
 
-        {/* Right 5 cols: Pending Tasks, Alerts, & Recent Activity */}
+        {/* Right 5 cols: Pending Tasks, Alerts & Recent Activity */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Pending Approvals & Critical Items */}
           <div className="bg-white border border-[#E6E2D8] rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-[#1C1917] pb-3 border-b border-[#EFECE5]">
+            <h2 className={`${sectionTitleClass} pb-3 border-b border-[#EFECE5]`}>
               Pendientes y alertas prioritarias
             </h2>
             <div className="divide-y divide-[#F2EFE9]">
@@ -421,14 +442,18 @@ export const ExecutiveHome: React.FC = () => {
                     <p className="mt-0.5 text-sm font-medium text-[#1C1917]">
                       {disc.disputedTaskLabel}
                     </p>
-                    <p className="text-xs text-[#5E5851] mt-0.5">
+                    <p className="text-xs text-[#6B635B] mt-0.5">
                       Reportó {disc.reportedByName} · {formatDateTimeAR(disc.reportedAt)}
                     </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => navigate({ module: 'organizacion', section: 'cumplimiento' })}
-                    className="text-xs font-medium text-[#7C2D36] hover:underline whitespace-nowrap shrink-0 cursor-pointer"
+                    onClick={() =>
+                      permissions.canViewAnalytics
+                        ? navigate({ module: 'analitica', section: 'discrepancias' })
+                        : navigate({ module: 'organizacion', section: 'checklists' })
+                    }
+                    className={permissions.canViewAnalytics ? analyticsLinkClass : 'text-xs font-semibold text-[#168B68] hover:text-[#117053] hover:underline whitespace-nowrap shrink-0 cursor-pointer'}
                   >
                     Revisar
                   </button>
@@ -463,17 +488,17 @@ export const ExecutiveHome: React.FC = () => {
                           selectedPurchaseRequestId: pr.id
                         })
                       }
-                      className="text-xs font-medium text-[#7C2D36] hover:underline whitespace-nowrap shrink-0 cursor-pointer"
+                      className="text-xs font-semibold text-[#168B68] hover:text-[#117053] hover:underline whitespace-nowrap shrink-0 cursor-pointer"
                     >
                       Gestionar
                     </button>
                   </div>
                 ))}
 
-              {permissions.canViewManagement && metrics.criticalStock.length > 0 && (
+              {permissions.canManageInventory && metrics.criticalStock.length > 0 && (
                 <div className="py-3 flex items-start justify-between gap-3">
                   <div>
-                    <StatusText label="Stock crítico" tone="warning" />
+                    <StatusText label="Stock crítico" tone="danger" />
                     <p className="mt-0.5 text-sm font-medium text-[#1C1917]">
                       {metrics.criticalStock.length} insumos por debajo del mínimo
                     </p>
@@ -486,10 +511,43 @@ export const ExecutiveHome: React.FC = () => {
                   </div>
                   <button
                     type="button"
-                    onClick={() => navigate({ module: 'gestion', section: 'inventario' })}
-                    className="text-xs font-medium text-[#7C2D36] hover:underline whitespace-nowrap shrink-0 cursor-pointer"
+                    onClick={() =>
+                      navigate({
+                        module: 'gestion',
+                        section: 'inventario',
+                        inventoryOnlyCritical: true
+                      })
+                    }
+                    className="text-xs font-semibold text-[#168B68] hover:text-[#117053] hover:underline whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     Ver stock
+                  </button>
+                </div>
+              )}
+
+              {permissions.canViewManagement && metrics.waste7dArs > 0 && (
+                <div className="py-3 flex items-start justify-between gap-3">
+                  <div>
+                    <StatusText label="Pérdidas y desperdicios (7d)" tone="warning" />
+                    <p className="mt-0.5 text-sm font-medium text-[#1C1917]">
+                      Desperdicio: {formatARS(metrics.waste7dArs)} · Merma: {formatARS(metrics.merma7dArs)}
+                    </p>
+                    <p className="text-xs text-[#5E5851] mt-0.5">
+                      Impacto acumulado con baja trazable en inventario
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate({
+                        module: 'analitica',
+                        section: 'gestion',
+                        analyticsSubTab: 'mermas'
+                      })
+                    }
+                    className={analyticsLinkClass}
+                  >
+                    Analizar
                   </button>
                 </div>
               )}
@@ -499,12 +557,12 @@ export const ExecutiveHome: React.FC = () => {
           {/* Recent Cross-Module Activity Feed */}
           <div className="bg-white border border-[#E6E2D8] rounded-lg p-6">
             <div className="flex items-center justify-between pb-3 border-b border-[#EFECE5]">
-              <h2 className="text-xl font-semibold text-[#1C1917]">Actividad reciente</h2>
-              {permissions.canViewAdmin && (
+              <h2 className={sectionTitleClass}>Actividad reciente</h2>
+              {permissions.canViewAnalytics && (
                 <button
                   type="button"
-                  onClick={() => navigate({ module: 'administracion', section: 'auditoria' })}
-                  className="text-xs font-medium text-[#7C2D36] hover:underline cursor-pointer"
+                  onClick={() => navigate({ module: 'analitica', section: 'auditoria' })}
+                  className={analyticsLinkClass}
                 >
                   Auditoría completa →
                 </button>

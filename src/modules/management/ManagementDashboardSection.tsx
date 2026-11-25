@@ -11,12 +11,14 @@ import {
   YAxis
 } from 'recharts';
 import {
+  analyticsLinkClass,
   inputClass,
   KpiCard,
   labelClass,
   Modal,
   primaryBtnClass,
   secondaryBtnClass,
+  sectionTitleClass,
   StatusText
 } from '../../components/ui/Primitives';
 import { useAppStore } from '../../services/store';
@@ -311,7 +313,9 @@ export const ManagementDashboardSection: React.FC<{ mode: 'dashboard' | 'ventas'
             subtitle={`Merma de proceso aparte: ${formatARS(analytics.mermasArs)}`}
             tone={analytics.desperdiciosArs > 50000 ? 'danger' : 'warning'}
             sourceTag="Mermas y Desp."
-            onClick={() => navigate({ module: 'gestion', section: 'mermas' })}
+            onClick={() =>
+              navigate({ module: 'analitica', section: 'gestion', analyticsSubTab: 'mermas' })
+            }
           />
           <KpiCard
             label="Dotación prevista hoy"
@@ -328,10 +332,10 @@ export const ManagementDashboardSection: React.FC<{ mode: 'dashboard' | 'ventas'
         <div className="lg:col-span-7 bg-white border border-[#E6E2D8] rounded-lg p-6">
           <div className="flex items-center justify-between pb-3 border-b border-[#EFECE5]">
             <div>
-              <h3 className="text-lg font-editorial font-semibold text-[#1C1917]">
+              <h3 className={sectionTitleClass}>
                 Evolución diaria de facturación (Mediodía vs Noche)
               </h3>
-              <p className="text-xs text-[#5E5851]">
+              <p className="text-xs text-[#6B635B] mt-0.5">
                 Responde al filtro de fechas y categoría; incorpora lotes importados en vivo
               </p>
             </div>
@@ -368,10 +372,10 @@ export const ManagementDashboardSection: React.FC<{ mode: 'dashboard' | 'ventas'
 
         <div className="lg:col-span-5 bg-white border border-[#E6E2D8] rounded-lg p-6">
           <div className="pb-3 border-b border-[#EFECE5]">
-            <h3 className="text-lg font-editorial font-semibold text-[#1C1917]">
+            <h3 className={sectionTitleClass}>
               Facturación por categoría de carta
             </h3>
-            <p className="text-xs text-[#5E5851]">Ranking comparativo en ARS del período</p>
+            <p className="text-xs text-[#6B635B] mt-0.5">Ranking comparativo en ARS del período</p>
           </div>
           <div className="mt-4 h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -401,8 +405,10 @@ export const ManagementDashboardSection: React.FC<{ mode: 'dashboard' | 'ventas'
           </h3>
           <button
             type="button"
-            onClick={() => navigate({ module: 'gestion', section: 'menu' })}
-            className="text-xs font-medium text-[#7C2D36] hover:underline cursor-pointer"
+            onClick={() =>
+              navigate({ module: 'analitica', section: 'gestion', analyticsSubTab: 'menu' })
+            }
+            className={analyticsLinkClass}
           >
             Ver ingeniería de menú →
           </button>

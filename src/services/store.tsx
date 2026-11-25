@@ -50,7 +50,7 @@ import {
 import { demoRepository } from '../repositories/demoRepository';
 import { addDaysISO, createId, todayISO } from '../utils/formatters';
 
-export type AppModule = 'inicio' | 'organizacion' | 'gestion' | 'personal' | 'administracion';
+export type AppModule = 'inicio' | 'organizacion' | 'gestion' | 'personal' | 'analitica' | 'administracion';
 
 export interface AppNavigationState {
   module: AppModule;
@@ -60,6 +60,18 @@ export interface AppNavigationState {
   selectedSectorId?: string;
   selectedPurchaseRequestId?: string;
   selectedExecutionId?: string;
+  analyticsSubTab?: string;
+  inventoryOnlyCritical?: boolean;
+  checklistStatusFilter?: string;
+  purchaseStatusFilter?: string;
+  menuPeriodDays?: 7 | 30;
+  menuCategoryFilter?: string;
+  menuQuadrantFilter?: string;
+}
+
+export interface EmployeeModalState {
+  employeeId: string;
+  initialTab?: string;
 }
 
 export interface ToastItem {
@@ -75,8 +87,11 @@ interface AppStoreContextValue {
   activeUser: DemoUserProfile;
   permissions: RolePermissions;
   nav: AppNavigationState;
+  employeeModal: EmployeeModalState | null;
   toasts: ToastItem[];
   navigate: (next: Partial<AppNavigationState>) => void;
+  openEmployeeProfile: (employeeId: string, initialTab?: string) => void;
+  closeEmployeeProfile: () => void;
   switchDemoRole: (roleId: DemoRoleId) => void;
   notify: (message: string, type?: ToastItem['type']) => void;
   dismissToast: (id: string) => void;
@@ -98,6 +113,21 @@ interface AppStoreContextValue {
     status: ShiftAssignmentStatus;
     notes?: string;
   }) => void;
+  assignRecurringShifts: (input: {
+    employeeId: string;
+    sectorId: string;
+    positionId: string;
+    temporaryPositionId?: string;
+    shiftId: string;
+    startTime: string;
+    endTime: string;
+    weekdays: number[]; // 0=Dom .. 6=Sab
+    startDate: ISODate;
+    endDate?: ISODate; // undefined when openEnded = true
+    openEnded: boolean;
+    status: ShiftAssignmentStatus;
+    notes?: string;
+  }) => number;
   saveChecklistExecution: (input: {
     executionId?: string;
     procedureId: string;
@@ -208,6 +238,25 @@ interface AppStoreContextValue {
     contractType: ContractType;
     weeklyBaseSalaryArs: number;
   }) => Employee;
+  updateEmployee: (
+    employeeId: string,
+    patch: Partial<
+      Pick<
+        Employee,
+        | 'firstName'
+        | 'lastName'
+        | 'fictionalDocCode'
+        | 'email'
+        | 'phone'
+        | 'emergencyContactName'
+        | 'emergencyContactPhone'
+        | 'contractType'
+        | 'status'
+        | 'weeklyBaseSalaryArs'
+        | 'hourlyExtraRateArs'
+      >
+    >
+  ) => void;
   transferEmployeePosition: (input: {
     employeeId: string;
     newSectorId: string;
@@ -368,6 +417,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     module: 'inicio',
     section: 'resumen'
   });
+  const [employeeModal, setEmployeeModal] = useState<EmployeeModalState | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const activeUser = useMemo(
@@ -440,7 +490,23 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [activeUser]
   );
 
+  const openEmployeeProfile = useCallback((employeeId: string, initialTab?: string) => {
+    setEmployeeModal({ employeeId, initialTab });
+  }, []);
+
+  const closeEmployeeProfile = useCallback(() => {
+    setEmployeeModal(null);
+  }, []);
+
   const navigate = useCallback((next: Partial<AppNavigationState>) => {
+    // Open employee profiles in the responsive modal without discarding current screen context
+    if (next.section === 'legajo' && next.selectedEmployeeId) {
+      setEmployeeModal({
+        employeeId: next.selectedEmployeeId,
+        initialTab: next.selectedEmployeeTab
+      });
+      return;
+    }
     setNav((prev) => ({ ...prev, ...next }));
   }, []);
 
@@ -460,6 +526,9 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           return { module: 'inicio', section: 'resumen' };
         }
         if (prev.module === 'personal' && !nextPerms.canViewPersonnel) {
+          return { module: 'inicio', section: 'resumen' };
+        }
+        if (prev.module === 'analitica' && !nextPerms.canViewAnalytics) {
           return { module: 'inicio', section: 'resumen' };
         }
         if (prev.module === 'administracion' && !nextPerms.canViewAdmin) {
@@ -681,6 +750,154 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       );
       notify('Dotación actualizada y sincronizada con el legajo del colaborador.');
+    },
+    [activeUser.name, updateAndPersist, notify]
+  );
+
+  const assignRecurringShifts = useCallback(
+    (input: {
+      employeeId: string;
+      sectorId: string;
+      positionId: string;
+      temporaryPositionId?: string;
+      shiftId: string;
+      startTime: string;
+      endTime: string;
+      weekdays: number[];
+      startDate: ISODate;
+      endDate?: ISODate;
+      openEnded: boolean;
+      status: ShiftAssignmentStatus;
+      notes?: string;
+    }): number => {
+      const now = new Date().toISOString();
+      const targetDates: ISODate[] = [];
+      const maxHorizonDays = input.openEnded ? 28 : 60;
+      const start = new Date(`${input.startDate}T12:00:00`);
+      const explicitEnd = !input.openEnded && input.endDate ? new Date(`${input.endDate}T12:00:00`) : null;
+
+      for (let i = 0; i < maxHorizonDays; i++) {
+        const cur = new Date(start);
+        cur.setDate(start.getDate() + i);
+        if (explicitEnd && cur > explicitEnd) break;
+        if (input.weekdays.includes(cur.getDay())) {
+          targetDates.push(cur.toISOString().slice(0, 10));
+        }
+      }
+
+      if (targetDates.length === 0) {
+        notify('Ninguna fecha del rango coincide con los días seleccionados.', 'warning');
+        return 0;
+      }
+
+      const isOvernight = input.endTime <= input.startTime;
+      const scheduleSuffix = [
+        isOvernight ? 'Turno nocturno (+1 día)' : null,
+        input.openEnded ? 'Cronograma recurrente sin fecha de fin (horizonte operativo 4 semanas)' : null,
+        input.notes?.trim() || null
+      ]
+        .filter(Boolean)
+        .join(' · ');
+
+      updateAndPersist(
+        (prev) => {
+          const emp = prev.employees.find((e) => e.id === input.employeeId);
+          let nextAssignments = [...prev.shiftAssignments];
+          let nextAttendance = [...prev.attendanceEvents];
+
+          targetDates.forEach((opDate) => {
+            const existingIdx = nextAssignments.findIndex(
+              (s) => s.employeeId === input.employeeId && s.operationalDate === opDate
+            );
+            let shiftAssignmentId: string;
+            if (existingIdx >= 0) {
+              shiftAssignmentId = nextAssignments[existingIdx].id;
+              nextAssignments[existingIdx] = {
+                ...nextAssignments[existingIdx],
+                sectorId: input.sectorId,
+                positionId: input.positionId,
+                temporaryPositionId: input.temporaryPositionId || undefined,
+                shiftId: input.shiftId,
+                startTime: input.startTime,
+                endTime: input.endTime,
+                status: input.status,
+                notes: scheduleSuffix || undefined,
+                updatedAt: now,
+                updatedBy: activeUser.name
+              };
+            } else {
+              shiftAssignmentId = createId('sa');
+              nextAssignments.push({
+                id: shiftAssignmentId,
+                employeeId: input.employeeId,
+                sectorId: input.sectorId,
+                positionId: input.positionId,
+                temporaryPositionId: input.temporaryPositionId || undefined,
+                shiftId: input.shiftId,
+                operationalDate: opDate,
+                startTime: input.startTime,
+                endTime: input.endTime,
+                status: input.status,
+                notes: scheduleSuffix || undefined,
+                createdAt: now,
+                createdBy: activeUser.name,
+                updatedAt: now,
+                updatedBy: activeUser.name
+              });
+            }
+
+            if (input.status === 'ausente_justificado' || input.status === 'ausente_injustificado') {
+              const eventType: AttendanceEventType =
+                input.status === 'ausente_justificado' ? 'ausencia_justificada' : 'ausencia_injustificada';
+              const alreadyExists = nextAttendance.some(
+                (a) =>
+                  a.employeeId === input.employeeId &&
+                  a.operationalDate === opDate &&
+                  a.eventType === eventType
+              );
+              if (!alreadyExists) {
+                nextAttendance = [
+                  {
+                    id: createId('att'),
+                    employeeId: input.employeeId,
+                    sectorId: input.sectorId,
+                    shiftAssignmentId,
+                    operationalDate: opDate,
+                    eventType,
+                    justified: input.status === 'ausente_justificado',
+                    notes: scheduleSuffix || `Registrado desde cronograma de dotación (${emp?.firstName ?? ''}).`,
+                    occurredAt: `${opDate}T${input.startTime}:00Z`,
+                    registeredAt: now,
+                    registeredBy: activeUser.name,
+                    status: 'registrado'
+                  },
+                  ...nextAttendance
+                ];
+              }
+            }
+          });
+
+          const updated: AppDataset = {
+            ...prev,
+            shiftAssignments: nextAssignments,
+            attendanceEvents: nextAttendance
+          };
+          return {
+            ...updated,
+            payrollPreparations: recalculatePayrollForDataset(updated)
+          };
+        },
+        {
+          module: 'organizacion',
+          entityType: 'ShiftAssignment',
+          entityId: input.employeeId,
+          action: 'CRONOGRAMA_ASIGNADO',
+          summary: `Cronograma aplicado (${targetDates.length} jornadas, ${input.startTime}–${input.endTime}${isOvernight ? ' +1d' : ''}).`
+        }
+      );
+
+      notify(`Cronograma aplicado en ${targetDates.length} jornada(s) y sincronizado con Personal.`);
+      return targetDates.length;
     },
     [activeUser.name, updateAndPersist, notify]
   );
@@ -1800,6 +2017,69 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [data.employees.length, activeUser.name, updateAndPersist, notify]
   );
 
+  const updateEmployee = useCallback(
+    (
+      employeeId: string,
+      patch: Partial<
+        Pick<
+          Employee,
+          | 'firstName'
+          | 'lastName'
+          | 'fictionalDocCode'
+          | 'email'
+          | 'phone'
+          | 'emergencyContactName'
+          | 'emergencyContactPhone'
+          | 'contractType'
+          | 'status'
+          | 'weeklyBaseSalaryArs'
+          | 'hourlyExtraRateArs'
+        >
+      >
+    ) => {
+      const now = new Date().toISOString();
+      updateAndPersist(
+        (prev) => {
+          const nextEmployees = prev.employees.map((e) => {
+            if (e.id !== employeeId) return e;
+            const nextWeekly =
+              patch.weeklyBaseSalaryArs !== undefined ? patch.weeklyBaseSalaryArs : e.weeklyBaseSalaryArs;
+            const nextHourly =
+              patch.hourlyExtraRateArs !== undefined
+                ? patch.hourlyExtraRateArs
+                : patch.weeklyBaseSalaryArs !== undefined
+                  ? Math.round((nextWeekly / 44) * 1.5)
+                  : e.hourlyExtraRateArs;
+            return {
+              ...e,
+              ...patch,
+              weeklyBaseSalaryArs: nextWeekly,
+              hourlyExtraRateArs: nextHourly,
+              updatedAt: now
+            };
+          });
+          const nextDs: AppDataset = { ...prev, employees: nextEmployees };
+          return {
+            ...nextDs,
+            payrollPreparations:
+              patch.weeklyBaseSalaryArs !== undefined
+                ? recalculatePayrollForDataset(nextDs)
+                : prev.payrollPreparations
+          };
+        },
+        {
+          module: 'personal',
+          entityType: 'Employee',
+          entityId: employeeId,
+          action: 'EMPLEADO_ACTUALIZADO',
+          summary: `Datos del legajo actualizados por ${activeUser.name}.`
+        }
+      );
+      notify('Datos del colaborador actualizados correctamente.');
+    },
+    [activeUser.name, updateAndPersist, notify]
+  );
+
   const transferEmployeePosition = useCallback(
     (input: {
       employeeId: string;
@@ -2282,8 +2562,11 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     activeUser,
     permissions,
     nav,
+    employeeModal,
     toasts,
     navigate,
+    openEmployeeProfile,
+    closeEmployeeProfile,
     switchDemoRole,
     notify,
     dismissToast,
@@ -2292,6 +2575,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     updateSector,
     createPosition,
     assignShift,
+    assignRecurringShifts,
     saveChecklistExecution,
     verifyChecklistExecution,
     disputeChecklistExecution,
@@ -2307,6 +2591,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     upsertDemandForecast,
     commitDataImport,
     createEmployee,
+    updateEmployee,
     transferEmployeePosition,
     recordAttendanceEvent,
     createLeaveRequest,

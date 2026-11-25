@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  BarChart3,
   Bell,
   Briefcase,
   Building2,
@@ -18,6 +19,9 @@ import { DEMO_USERS } from '../domain/permissions';
 import { AppModule, useAppStore } from '../services/store';
 import { formatDateAR, todayISO } from '../utils/formatters';
 import { ToastContainer } from '../components/ui/Primitives';
+import { EmployeeProfileModal } from '../modules/personnel/EmployeeProfileView';
+
+const LOGO_SRC = '/assets/aistudio/logo_la_rueda_transparent.png';
 
 interface NavGroup {
   module: AppModule;
@@ -28,8 +32,18 @@ interface NavGroup {
 }
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { data, activeUser, permissions, nav, navigate, switchDemoRole, toasts, dismissToast } =
-    useAppStore();
+  const {
+    data,
+    activeUser,
+    permissions,
+    nav,
+    employeeModal,
+    navigate,
+    closeEmployeeProfile,
+    switchDemoRole,
+    toasts,
+    dismissToast
+  } = useAppStore();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -46,7 +60,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         label: 'Inicio',
         icon: LayoutDashboard,
         visible: permissions.canViewHome,
-        sections: [{ id: 'resumen', label: 'Dashboard ejecutivo' }]
+        sections: [{ id: 'resumen', label: 'Resumen ejecutivo' }]
       },
       {
         module: 'organizacion',
@@ -54,11 +68,10 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         icon: Building2,
         visible: permissions.canViewOrganization,
         sections: [
-          { id: 'organigrama', label: 'Organigrama y sectores' },
-          { id: 'dotacion', label: 'Dotación y turnos' },
-          { id: 'checklists', label: 'Procedimientos y checklists' },
-          { id: 'cumplimiento', label: 'Discrepancias y analítica' },
-          { id: 'manuales', label: 'Manuales y documentos' }
+          { id: 'organigrama', label: 'Organigrama' },
+          { id: 'dotacion', label: 'Dotación' },
+          { id: 'checklists', label: 'Procedimientos' },
+          { id: 'manuales', label: 'Manuales' }
         ]
       },
       {
@@ -67,14 +80,16 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         icon: Briefcase,
         visible: permissions.canViewManagement,
         sections: [
-          { id: 'dashboard', label: 'Dashboard gerencial' },
-          { id: 'ventas', label: 'Ventas y comensales' },
-          { id: 'menu', label: 'Ingeniería de menú' },
-          { id: 'compras', label: 'Compras y órdenes' },
-          { id: 'inventario', label: 'Inventarios y movimientos' },
-          { id: 'mermas', label: 'Mermas y desperdicios' },
-          { id: 'planificacion', label: 'Planificación y demanda' },
-          { id: 'importacion', label: 'Importación de datos' }
+          ...(permissions.canViewFinancialMetrics ? [{ id: 'ventas', label: 'Ventas' }] : []),
+          { id: 'compras', label: 'Compras' },
+          ...(permissions.canManageInventory ? [{ id: 'inventario', label: 'Inventarios' }] : []),
+          ...(permissions.canRegisterLosses
+            ? [{ id: 'mermas', label: 'Mermas y desperdicios' }]
+            : []),
+          ...(permissions.canViewFinancialMetrics
+            ? [{ id: 'planificacion', label: 'Planificación' }]
+            : []),
+          ...(permissions.canImportData ? [{ id: 'importacion', label: 'Importación' }] : [])
         ]
       },
       {
@@ -83,26 +98,32 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         icon: Users,
         visible: permissions.canViewPersonnel,
         sections: [
-          { id: 'directorio', label: 'Directorio y legajos' },
-          { id: 'asistencia', label: 'Asistencias y parte semanal' },
-          { id: 'vacaciones', label: 'Vacaciones y licencias' },
-          { id: 'desempeno', label: 'Desempeño y capacitaciones' },
-          { id: 'prestamos', label: 'Préstamos y adelantos' },
+          { id: 'directorio', label: 'Legajos' },
+          { id: 'asistencia', label: 'Asistencia' },
+          { id: 'vacaciones', label: 'Vacaciones' },
+          { id: 'desempeno', label: 'Desempeño' },
+          { id: 'prestamos', label: 'Adelantos' },
           ...(permissions.canViewSalaryAndPayroll
-            ? [{ id: 'preliquidacion', label: 'Propinas y pre-liquidación' }]
+            ? [{ id: 'preliquidacion', label: 'Liquidación' }]
             : [])
         ]
       },
       {
-        module: 'administracion',
-        label: 'Administración',
-        icon: Settings,
-        visible: permissions.canViewAdmin,
+        module: 'analitica',
+        label: 'Analítica',
+        icon: BarChart3,
+        visible: permissions.canViewAnalytics,
         sections: [
-          { id: 'roles', label: 'Usuarios y roles' },
-          { id: 'auditoria', label: 'Auditoría de actividad' },
-          { id: 'arquitectura', label: 'Integración Bluehost e IA' },
-          { id: 'demo', label: 'Datos de demostración' }
+          { id: 'resumen', label: 'Resumen general' },
+          { id: 'organizacion', label: 'Organización' },
+          ...(permissions.canViewManagement || permissions.canViewFinancialMetrics
+            ? [{ id: 'gestion', label: 'Gestión' }]
+            : []),
+          ...(permissions.canViewPersonnel && permissions.canViewAllEmployees
+            ? [{ id: 'personal', label: 'Personal' }]
+            : []),
+          { id: 'discrepancias', label: 'Discrepancias' },
+          { id: 'auditoria', label: 'Auditoría y actividad' }
         ]
       }
     ],
@@ -120,14 +141,14 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
     }> = [];
 
     const openDiscrepancies = data.discrepancies.filter((d) => d.status === 'abierta');
-    if (openDiscrepancies.length > 0 && permissions.canViewOrganization) {
+    if (openDiscrepancies.length > 0 && permissions.canViewAnalytics) {
       alerts.push({
         id: 'al-disc',
         title: `${openDiscrepancies.length} discrepancia(s) operativa(s) abierta(s)`,
         detail: openDiscrepancies[0].disputedTaskLabel,
         severity: 'danger',
         onClick: () => {
-          navigate({ module: 'organizacion', section: 'cumplimiento' });
+          navigate({ module: 'analitica', section: 'discrepancias' });
           setAlertsOpen(false);
         }
       });
@@ -154,7 +175,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
     }
 
     const criticalProducts = data.products.filter((p) => p.active && p.currentStock < p.minStock);
-    if (criticalProducts.length > 0 && permissions.canViewManagement) {
+    if (criticalProducts.length > 0 && permissions.canManageInventory) {
       alerts.push({
         id: 'al-stock',
         title: `${criticalProducts.length} productos bajo stock mínimo`,
@@ -164,7 +185,11 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           .join(', '),
         severity: 'warning',
         onClick: () => {
-          navigate({ module: 'gestion', section: 'inventario' });
+          navigate({
+            module: 'gestion',
+            section: 'inventario',
+            inventoryOnlyCritical: true
+          });
           setAlertsOpen(false);
         }
       });
@@ -237,11 +262,11 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         .forEach((p) => {
           results.push({
             id: `sr-${p.id}`,
-            category: 'Inventario',
+            category: 'Inventarios',
             title: `${p.name} (${p.sku})`,
             subtitle: `Stock: ${p.currentStock} ${p.baseUnit} · Mín: ${p.minStock} ${p.baseUnit}`,
             onSelect: () => {
-              navigate({ module: 'gestion', section: 'inventario' });
+              navigate({ module: 'gestion', section: 'inventario', inventoryOnlyCritical: false });
               setSearchOpen(false);
               setSearchQuery('');
             }
@@ -293,41 +318,65 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   }, [searchQuery, data, permissions, activeUser, navigate]);
 
   const currentGroup = navGroups.find((g) => g.module === nav.module);
+  const currentModuleLabel =
+    nav.module === 'administracion' ? 'Configuración' : currentGroup?.label ?? 'Inicio';
   const currentSectionLabel =
-    currentGroup?.sections.find((s) => s.id === nav.section)?.label ??
-    (nav.section === 'legajo' ? 'Legajo digital' : nav.section);
+    nav.module === 'administracion'
+      ? nav.section === 'auditoria'
+        ? 'Auditoría de actividad'
+        : nav.section === 'automatizaciones' || nav.section === 'arquitectura'
+          ? 'Automatizaciones'
+          : 'Usuarios y roles'
+      : currentGroup?.sections.find((s) => s.id === nav.section)?.label ??
+        (nav.section === 'legajo' ? 'Legajos' : nav.section);
 
   const handleSelectNav = (module: AppModule, section: string) => {
-    navigate({ module, section });
+    navigate({
+      module,
+      section,
+      inventoryOnlyCritical: undefined,
+      checklistStatusFilter: undefined
+    });
     setExpandedGroup(module);
     setMobileMenuOpen(false);
   };
 
   const renderSidebarContent = (isMobile = false) => (
     <div className="flex flex-col h-full bg-[#181615] text-[#F5F2EC] select-none">
-      {/* Brand Header */}
-      <div className="px-5 py-5 border-b border-[#2C2825] flex items-center justify-between gap-2">
-        {(!sidebarCollapsed || isMobile) ? (
+      {/* Brand Header with Authentic La Rueda 1975 Logo */}
+      <div className="px-4 py-4 border-b border-[#2C2825] flex items-center justify-between gap-2">
+        {!sidebarCollapsed || isMobile ? (
           <button
             type="button"
             onClick={() => handleSelectNav('inicio', 'resumen')}
-            className="text-left group cursor-pointer"
+            className="flex items-center gap-3 text-left group cursor-pointer min-w-0"
           >
-            <div className="font-editorial text-2xl font-semibold tracking-tight text-white leading-none">
-              La Rueda 1975
-            </div>
-            <div className="mt-1 text-[11px] text-[#A89F95] tracking-wide">
-              Puerto Iguazú · Modo demostración
+            <img
+              src={LOGO_SRC}
+              alt="Logo Restaurant La Rueda 1975"
+              className="w-10 h-10 object-contain shrink-0 rounded-full"
+            />
+            <div className="min-w-0">
+              <div className="font-editorial text-xl font-semibold tracking-tight text-white leading-none truncate">
+                La Rueda 1975
+              </div>
+              <div className="mt-1 text-[11px] text-[#A89F95] tracking-wide truncate">
+                Puerto Iguazú
+              </div>
             </div>
           </button>
         ) : (
           <button
             type="button"
             onClick={() => handleSelectNav('inicio', 'resumen')}
-            className="mx-auto font-editorial text-xl font-semibold text-white cursor-pointer"
+            className="mx-auto cursor-pointer"
             title="La Rueda 1975"
           >
-            LR
+            <img
+              src={LOGO_SRC}
+              alt="La Rueda 1975"
+              className="w-9 h-9 object-contain rounded-full"
+            />
           </button>
         )}
 
@@ -345,14 +394,14 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             type="button"
             onClick={() => setSidebarCollapsed((c) => !c)}
             aria-label={sidebarCollapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'}
-            className="p-1.5 text-[#A89F95] hover:text-white rounded hover:bg-[#262320] cursor-pointer"
+            className="p-1.5 text-[#A89F95] hover:text-white rounded hover:bg-[#262320] cursor-pointer shrink-0"
           >
             {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
         )}
       </div>
 
-      {/* Navigation Tree */}
+      {/* Primary 5-Module Navigation Tree */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5" aria-label="Navegación principal">
         {navGroups
           .filter((g) => g.visible)
@@ -364,6 +413,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
             return (
               <div key={group.module}>
+                {group.module === 'analitica' && (
+                  <div className="my-2.5 border-t border-[#2C2825]" aria-hidden="true" />
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -382,7 +434,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                   }}
                   className={`w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-md text-sm font-medium transition-colors duration-150 cursor-pointer ${
                     isActiveModule
-                      ? 'bg-[#7C2D36] text-white'
+                      ? group.module === 'analitica'
+                        ? 'bg-[#1769C2] text-white'
+                        : 'bg-[#7C2D36] text-white'
                       : 'text-[#D6CFC5] hover:bg-[#262320] hover:text-white'
                   }`}
                   title={sidebarCollapsed && !isMobile ? group.label : undefined}
@@ -405,7 +459,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 {(!sidebarCollapsed || isMobile) && hasMultiple && isExpanded && (
                   <div className="mt-1 ml-4 pl-3 border-l border-[#332E2A] space-y-0.5">
                     {group.sections.map((sec) => {
-                      const activeSec = isActiveModule && (nav.section === sec.id || (sec.id === 'directorio' && nav.section === 'legajo'));
+                      const activeSec =
+                        isActiveModule &&
+                        (nav.section === sec.id || (sec.id === 'directorio' && nav.section === 'legajo'));
                       return (
                         <button
                           key={sec.id}
@@ -428,11 +484,24 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           })}
       </nav>
 
-      {/* Discreet VEGEN Digital Footer */}
-      {(!sidebarCollapsed || isMobile) && (
-        <div className="px-5 py-4 border-t border-[#2C2825] text-[11px] text-[#9A9188] space-y-1">
-          <p className="text-[#C7BEB4] font-medium">Modo demostración</p>
-          <p className="leading-snug">Tecnología y transformación digital por VEGEN</p>
+      {/* Discreet Utility Link for Admin / Demo Controls */}
+      {permissions.canViewAdmin && (
+        <div className="border-t border-[#2C2825] px-3 py-3">
+          <button
+            type="button"
+            onClick={() => handleSelectNav('administracion', 'roles')}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+              nav.module === 'administracion'
+                ? 'bg-[#2B2724] text-white'
+                : 'text-[#A89F95] hover:text-white hover:bg-[#23201D]'
+            }`}
+            title={sidebarCollapsed && !isMobile ? 'Configuración' : undefined}
+          >
+            <Settings className="w-3.5 h-3.5 shrink-0" />
+            {(!sidebarCollapsed || isMobile) && (
+              <span className="truncate whitespace-nowrap">Configuración</span>
+            )}
+          </button>
         </div>
       )}
     </div>
@@ -463,10 +532,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex flex-col">
-        {/* Top Bar (Clean, single-row, operational context + search + alerts + role switcher) */}
-        <header className="sticky top-0 z-30 h-14 bg-white border-b border-[#E6E2D8] px-4 lg:px-8 flex items-center justify-between gap-4 no-print">
-          {/* Left: Mobile trigger + Breadcrumbs */}
-          <div className="flex items-center gap-3 min-w-0">
+        {/* Top Bar */}
+        <header className="sticky top-0 z-30 h-14 bg-white border-b border-[#E6E2D8] px-4 lg:px-8 flex items-center justify-between gap-3 lg:gap-5 no-print">
+          <div className="flex items-center gap-3 min-w-0 shrink-0">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
@@ -476,31 +544,87 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               <Menu className="w-5 h-5" />
             </button>
 
-            <nav aria-label="Ubicación actual" className="flex items-center gap-2 text-xs sm:text-sm min-w-0">
-              <span className="font-semibold text-[#1C1917] whitespace-nowrap hidden sm:inline">
-                La Rueda 1975
+            <nav aria-label="Ubicación actual" className="flex items-center gap-1.5 text-xs sm:text-sm min-w-0">
+              <span className="text-[#6B635B] whitespace-nowrap">{currentModuleLabel}</span>
+              <span className="text-[#C7C0B5]" aria-hidden="true">/</span>
+              <span className="text-[#1C1917] font-semibold truncate max-w-[130px] sm:max-w-[200px]">
+                {currentSectionLabel}
               </span>
-              <span className="text-[#C7C0B5] hidden sm:inline">/</span>
-              <span className="text-[#5E5851] whitespace-nowrap">{currentGroup?.label ?? 'Inicio'}</span>
-              <span className="text-[#C7C0B5]">/</span>
-              <span className="text-[#1C1917] font-medium truncate">{currentSectionLabel}</span>
             </nav>
           </div>
 
-          {/* Right: Search, Alerts, Demo Role Switcher */}
+          {/* Enlarged Prominent Search Bar (Desktop/Tablet inline, Mobile trigger) */}
+          <div className="hidden md:block relative flex-1 max-w-md xl:max-w-lg">
+            <Search className="w-4 h-4 text-[#736B63] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onFocus={() => {
+                setAlertsOpen(false);
+                setRoleMenuOpen(false);
+              }}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setSearchQuery('');
+              }}
+              placeholder="Buscar empleados, productos, compras o procedimientos..."
+              aria-label="Búsqueda global"
+              className="w-full pl-9 pr-8 py-1.5 text-sm text-[#1C1917] bg-[#F8F7F4] border border-[#DFD9CE] hover:border-[#C9C2B6] focus:bg-white focus:border-[#7C2D36] focus:outline-none focus:ring-1 focus:ring-[#7C2D36] rounded-md placeholder:text-[#8C847A] transition-colors"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label="Limpiar búsqueda"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#736B63] hover:text-[#1C1917] cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {searchQuery.trim().length >= 2 && (
+              <div className="absolute left-0 right-0 mt-1.5 bg-white border border-[#E6E2D8] rounded-lg shadow-xl z-50 overflow-hidden">
+                <div className="max-h-80 overflow-y-auto divide-y divide-[#F2EFE9]">
+                  {searchResults.length === 0 ? (
+                    <p className="p-4 text-xs text-[#6B635B]">
+                      Sin resultados para "{searchQuery}" con el perfil actual.
+                    </p>
+                  ) : (
+                    searchResults.map((res) => (
+                      <button
+                        key={res.id}
+                        type="button"
+                        onClick={res.onSelect}
+                        className="w-full text-left px-4 py-2.5 hover:bg-[#F8F7F4] transition-colors flex items-center justify-between gap-3 cursor-pointer"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-[#1C1917] truncate">{res.title}</div>
+                          <div className="text-xs text-[#6B635B] truncate">{res.subtitle}</div>
+                        </div>
+                        <span className="text-xs text-[#7C2D36] font-medium shrink-0">
+                          {res.category}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <span className="hidden xl:inline text-xs font-mono tabular-nums text-[#5E5851] pr-2 border-r border-[#E6E2D8]">
+            <span className="hidden xl:inline text-xs font-mono tabular-nums text-[#6B635B] pr-3 border-r border-[#E6E2D8] whitespace-nowrap">
               {formatDateAR(todayISO())} · Modo demostración
             </span>
 
-            {/* Global Search Trigger */}
+            {/* Mobile Search Button */}
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs text-[#5E5851] bg-[#F8F7F4] border border-[#E6E2D8] hover:border-[#C9C2B6] rounded-md transition-colors cursor-pointer"
+              aria-label="Buscar"
+              className="md:hidden p-2 text-[#5E5851] hover:text-[#1C1917] hover:bg-[#F2EFE9] rounded-md transition-colors cursor-pointer"
             >
-              <Search className="w-3.5 h-3.5" />
-              <span className="hidden md:inline whitespace-nowrap">Buscar...</span>
+              <Search className="w-4 h-4" />
             </button>
 
             {/* Operational Alerts Popover */}
@@ -526,19 +650,19 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-[#E6E2D8] rounded-lg shadow-lg z-40">
                   <div className="px-4 py-3 border-b border-[#E6E2D8] flex items-center justify-between">
                     <span className="text-xs font-semibold text-[#1C1917]">
-                      Alertas operativas activas
+                      Alertas activas
                     </span>
                     <button
                       type="button"
                       onClick={() => setAlertsOpen(false)}
-                      className="text-xs text-[#5E5851] hover:text-[#1C1917] cursor-pointer"
+                      className="text-xs text-[#6B635B] hover:text-[#1C1917] cursor-pointer"
                     >
                       Cerrar
                     </button>
                   </div>
                   <div className="divide-y divide-[#EFECE5] max-h-80 overflow-y-auto">
                     {operationalAlerts.length === 0 ? (
-                      <p className="p-4 text-xs text-[#5E5851]">Sin alertas pendientes para este rol.</p>
+                      <p className="p-4 text-xs text-[#6B635B]">Sin alertas pendientes para este perfil.</p>
                     ) : (
                       operationalAlerts.map((al) => (
                         <button
@@ -550,15 +674,15 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                           <div
                             className={`text-xs font-semibold ${
                               al.severity === 'danger'
-                                ? 'text-[#B91C1C]'
+                                ? 'text-[#C83E43]'
                                 : al.severity === 'warning'
-                                  ? 'text-[#B45309]'
-                                  : 'text-[#7C2D36]'
+                                  ? 'text-[#D97706]'
+                                  : 'text-[#1769C2]'
                             }`}
                           >
                             {al.title}
                           </div>
-                          <p className="mt-0.5 text-xs text-[#5E5851] line-clamp-2">{al.detail}</p>
+                          <p className="mt-0.5 text-xs text-[#6B635B] line-clamp-2">{al.detail}</p>
                         </button>
                       ))
                     )}
@@ -567,7 +691,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
               )}
             </div>
 
-            {/* Demo Role Switcher */}
+            {/* Simplified Profile / Role Switcher */}
             <div className="relative">
               <button
                 type="button"
@@ -578,19 +702,14 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-[#1C1917] bg-[#F8F7F4] border border-[#D6D0C4] hover:border-[#7C2D36] rounded-md transition-colors cursor-pointer whitespace-nowrap"
               >
                 <UserCheck className="w-3.5 h-3.5 text-[#7C2D36] shrink-0" />
-                <span className="max-w-[120px] sm:max-w-[180px] truncate">{activeUser.roleLabel}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-[#5E5851] shrink-0" />
+                <span className="max-w-[120px] sm:max-w-[165px] truncate">{activeUser.roleLabel}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-[#6B635B] shrink-0" />
               </button>
 
               {roleMenuOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white border border-[#E6E2D8] rounded-lg shadow-lg z-40">
-                  <div className="px-4 py-3 border-b border-[#E6E2D8]">
-                    <p className="text-xs font-semibold text-[#1C1917]">
-                      Selector de rol (Modo demostración)
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-[#5E5851]">
-                      Cambia navegación y permisos visibles. En producción requerirá autenticación de servidor.
-                    </p>
+                <div className="absolute right-0 mt-2 w-72 bg-white border border-[#E6E2D8] rounded-lg shadow-lg z-40">
+                  <div className="px-4 py-2.5 border-b border-[#E6E2D8]">
+                    <p className="text-xs font-semibold text-[#1C1917]">Cambiar perfil</p>
                   </div>
                   <div className="py-1 max-h-80 overflow-y-auto divide-y divide-[#F2EFE9]">
                     {DEMO_USERS.map((u) => {
@@ -609,17 +728,17 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span
-                              className={`text-xs font-semibold ${
+                              className={`text-sm font-medium ${
                                 active ? 'text-[#7C2D36]' : 'text-[#1C1917]'
                               }`}
                             >
                               {u.roleLabel}
                             </span>
                             {active && (
-                              <span className="text-[11px] font-medium text-[#7C2D36]">Activo</span>
+                              <span className="text-[11px] font-semibold text-[#7C2D36]">Activo</span>
                             )}
                           </div>
-                          <p className="text-[11px] text-[#5E5851] mt-0.5">{u.title}</p>
+                          <p className="text-[11px] text-[#6B635B] mt-0.5">{u.title}</p>
                         </button>
                       );
                     })}
@@ -635,9 +754,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           {children}
         </main>
 
-        {/* Discreet Global Footer */}
-        <footer className="border-t border-[#E6E2D8] bg-white/70 px-4 sm:px-8 py-3.5 text-xs text-[#5E5851] flex flex-col sm:flex-row items-center justify-between gap-2 no-print">
-          <span>La Rueda 1975 · Puerto Iguazú, Misiones · Datos sintéticos de demostración</span>
+        {/* Discreet Single-Instance Global Footer */}
+        <footer className="border-t border-[#E6E2D8] bg-white/70 px-4 sm:px-8 py-3 text-xs text-[#6B635B] flex flex-col sm:flex-row items-center justify-between gap-2 no-print">
+          <span>La Rueda 1975 · Puerto Iguazú, Misiones</span>
           <span>Tecnología y transformación digital por VEGEN</span>
         </footer>
       </div>
@@ -701,6 +820,14 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </div>
           </div>
         </div>
+      )}
+
+      {employeeModal && (
+        <EmployeeProfileModal
+          employeeId={employeeModal.employeeId}
+          initialTab={employeeModal.initialTab}
+          onClose={closeEmployeeProfile}
+        />
       )}
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />

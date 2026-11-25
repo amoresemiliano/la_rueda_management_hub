@@ -1,11 +1,13 @@
-import React, { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Edit3, Plus, UserCheck, Users } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, Edit3, Plus } from 'lucide-react';
 import {
   inputClass,
   labelClass,
   Modal,
+  operationalSecondaryBtnClass,
   primaryBtnClass,
   secondaryBtnClass,
+  sectionTitleClass,
   StatusText
 } from '../../components/ui/Primitives';
 import { Position, Sector } from '../../domain/types';
@@ -16,13 +18,21 @@ export const OrgChartSection: React.FC = () => {
   const { data, permissions, nav, navigate, createSector, updateSector, createPosition } = useAppStore();
   const today = todayISO();
 
-  const [selectedSectorId, setSelectedSectorId] = useState<string>(
-    nav.selectedSectorId ?? data.sectors[8]?.id ?? data.sectors[0]?.id ?? ''
+  // All sectors start collapsed by default (unless navigated directly with a selectedSectorId context)
+  const [expandedSectorIds, setExpandedSectorIds] = useState<Record<string, boolean>>(() =>
+    nav.selectedSectorId ? { [nav.selectedSectorId]: true } : {}
   );
+
+  useEffect(() => {
+    if (nav.selectedSectorId) {
+      setExpandedSectorIds((prev) => ({ ...prev, [nav.selectedSectorId!]: true }));
+    }
+  }, [nav.selectedSectorId]);
   const [expandedPositionIds, setExpandedPositionIds] = useState<Record<string, boolean>>({});
   const [sectorModalOpen, setSectorModalOpen] = useState(false);
   const [editingSector, setEditingSector] = useState<Sector | null>(null);
   const [positionModalOpen, setPositionModalOpen] = useState(false);
+  const [positionTargetSectorId, setPositionTargetSectorId] = useState<string>(data.sectors[0]?.id ?? '');
 
   // Sector form state
   const [secName, setSecName] = useState('');
@@ -46,6 +56,7 @@ export const OrgChartSection: React.FC = () => {
         scheduledToday: number;
         absencesToday: number;
         vacant: number;
+        positionsCount: number;
         managerName: string;
       }
     >();
@@ -73,17 +84,30 @@ export const OrgChartSection: React.FC = () => {
         scheduledToday,
         absencesToday,
         vacant,
+        positionsCount: secPositions.length,
         managerName: mgr ? `${mgr.firstName} ${mgr.lastName}` : 'Sin asignar'
       });
     });
     return map;
   }, [data.sectors, data.employees, data.positions, data.shiftAssignments, today]);
 
-  const selectedSector = data.sectors.find((s) => s.id === selectedSectorId) ?? data.sectors[0];
-  const selectedPositions = useMemo(
-    () => data.positions.filter((p) => p.sectorId === selectedSector?.id),
-    [data.positions, selectedSector]
-  );
+  const anyExpanded = Object.values(expandedSectorIds).some(Boolean);
+
+  const toggleSector = (sectorId: string) => {
+    setExpandedSectorIds((prev) => ({ ...prev, [sectorId]: !prev[sectorId] }));
+  };
+
+  const toggleAllSectors = () => {
+    if (anyExpanded) {
+      setExpandedSectorIds({});
+    } else {
+      const all: Record<string, boolean> = {};
+      data.sectors.forEach((s) => {
+        all[s.id] = true;
+      });
+      setExpandedSectorIds(all);
+    }
+  };
 
   const openCreateSector = () => {
     setEditingSector(null);
@@ -103,6 +127,15 @@ export const OrgChartSection: React.FC = () => {
     setSecMinHeadcount(sec.dailyMinHeadcount);
     setSecManagerId(sec.managerEmployeeId ?? '');
     setSectorModalOpen(true);
+  };
+
+  const openCreatePosition = (sectorId?: string) => {
+    setPositionTargetSectorId(sectorId ?? data.sectors[0]?.id ?? '');
+    setPosName('');
+    setPosLevel('operativo');
+    setPosTarget(2);
+    setPosDesc('');
+    setPositionModalOpen(true);
   };
 
   const handleSaveSector = (e: React.FormEvent) => {
@@ -129,293 +162,260 @@ export const OrgChartSection: React.FC = () => {
 
   const handleSavePosition = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSector || !posName.trim()) return;
+    if (!positionTargetSectorId || !posName.trim()) return;
     createPosition({
-      sectorId: selectedSector.id,
+      sectorId: positionTargetSectorId,
       name: posName.trim(),
       level: posLevel,
       targetHeadcount: Math.max(1, Number(posTarget) || 1),
       description: posDesc.trim()
     });
+    setExpandedSectorIds((prev) => ({ ...prev, [positionTargetSectorId]: true }));
     setPosName('');
     setPosDesc('');
     setPositionModalOpen(false);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Compact Operational Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold text-[#1C1917]">
-            Estructura jerárquica — {data.organization.name}
+          <h2 className={sectionTitleClass}>
+            Estructura por sectores ({data.sectors.length} áreas · {data.employees.length} personas)
           </h2>
-          <p className="text-xs text-[#5E5851] mt-0.5">
-            Restaurante → Sector → Puesto → Colaboradores asignados (vinculados en vivo con el módulo Personal)
+          <p className="text-xs text-[#6B635B] mt-0.5">
+            Expandí un sector para ver puestos y abrir legajos en Personal.
           </p>
         </div>
-        {permissions.canEditOrgStructure && (
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={openCreateSector} className={secondaryBtnClass}>
-              <Plus className="w-4 h-4" />
-              Nuevo sector
-            </button>
-            <button
-              type="button"
-              onClick={() => setPositionModalOpen(true)}
-              className={primaryBtnClass}
-              disabled={!selectedSector}
-            >
-              <Plus className="w-4 h-4" />
-              Nuevo puesto
-            </button>
-          </div>
-        )}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={toggleAllSectors} className={secondaryBtnClass}>
+            {anyExpanded ? 'Contraer todos' : 'Expandir todos'}
+          </button>
+          {permissions.canEditOrgStructure && (
+            <>
+              <button type="button" onClick={openCreateSector} className={operationalSecondaryBtnClass}>
+                <Plus className="w-4 h-4" />
+                Nuevo sector
+              </button>
+              <button type="button" onClick={() => openCreatePosition()} className={primaryBtnClass}>
+                <Plus className="w-4 h-4" />
+                Nuevo puesto
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left: Sectors Tree List */}
-        <div className="lg:col-span-5 bg-white border border-[#E6E2D8] rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#E6E2D8] bg-[#F8F7F4] flex items-center justify-between">
-            <span className="text-xs font-semibold text-[#1C1917]">
-              Áreas y sectores ({data.sectors.length})
-            </span>
-            <span className="text-xs font-mono tabular-nums text-[#5E5851]">
-              {data.employees.length} personas
-            </span>
-          </div>
-          <div className="divide-y divide-[#F2EFE9] max-h-[620px] overflow-y-auto">
-            {data.sectors.map((sec) => {
-              const st = sectorStats.get(sec.id);
-              const isSelected = selectedSector?.id === sec.id;
-              return (
+      {/* Collapsible Accordion Tree: Sector -> Puesto -> Colaboradores */}
+      <div className="space-y-2.5">
+        {data.sectors.map((sec) => {
+          const st = sectorStats.get(sec.id);
+          const isSectorOpen = Boolean(expandedSectorIds[sec.id]);
+          const secPositions = data.positions.filter((p) => p.sectorId === sec.id);
+
+          return (
+            <div
+              key={sec.id}
+              className="bg-white border border-[#E6E2D8] rounded-lg overflow-hidden"
+            >
+              {/* Sector Row Header */}
+              <div className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-[#FAF9F6] transition-colors">
                 <button
-                  key={sec.id}
                   type="button"
-                  onClick={() => setSelectedSectorId(sec.id)}
-                  className={`w-full text-left px-4 py-3.5 transition-colors cursor-pointer ${
-                    isSelected ? 'bg-[#7C2D36]/8' : 'hover:bg-[#F8F7F4]'
-                  }`}
+                  onClick={() => toggleSector(sec.id)}
+                  className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-left cursor-pointer min-w-0"
+                  aria-expanded={isSectorOpen}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={`text-sm font-semibold ${
-                        isSelected ? 'text-[#7C2D36]' : 'text-[#1C1917]'
-                      }`}
-                    >
-                      {sec.name}
-                    </span>
-                    <span className="text-xs font-mono tabular-nums text-[#5E5851]">
-                      {st?.assigned ?? 0} asig. · {st?.scheduledToday ?? 0} hoy
-                    </span>
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-[#5E5851]">
-                    <span>Resp: {st?.managerName}</span>
-                    {st && st.absencesToday > 0 && (
-                      <>
-                        <span aria-hidden="true">·</span>
-                        <span className="text-[#B91C1C] font-medium">
-                          {st.absencesToday} ausencia(s)
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {isSectorOpen ? (
+                      <ChevronDown className="w-4 h-4 text-[#7C2D36] shrink-0" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-[#5E5851] shrink-0" />
+                    )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-[#1C1917] truncate">
+                          {sec.name}
                         </span>
-                      </>
+                        <span className="text-[11px] font-mono text-[#8C847A]">{sec.code}</span>
+                      </div>
+                      <div className="text-[11px] text-[#5E5851] flex flex-wrap items-center gap-1.5 mt-0.5">
+                        <span>Responsable: {st?.managerName}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{st?.positionsCount ?? 0} puesto(s)</span>
+                        <span aria-hidden="true">·</span>
+                        <span>Mín. diario: {sec.dailyMinHeadcount}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 text-xs font-mono tabular-nums pl-6 sm:pl-0 shrink-0">
+                    <span className="text-[#1C1917]">{st?.assigned ?? 0} pers.</span>
+                    <span className="text-[#5E5851]">{st?.scheduledToday ?? 0} hoy</span>
+                    {st && st.absencesToday > 0 && (
+                      <StatusText label={`${st.absencesToday} aus.`} tone="danger" />
                     )}
                     {st && st.vacant > 0 && (
-                      <>
-                        <span aria-hidden="true">·</span>
-                        <span className="text-[#B45309] font-medium">{st.vacant} vacante(s)</span>
-                      </>
+                      <StatusText label={`${st.vacant} vac.`} tone="warning" />
                     )}
                   </div>
                 </button>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* Right: Selected Sector Detail + Expandable Positions & Linked Employees */}
-        <div className="lg:col-span-7 space-y-4">
-          {selectedSector && (
-            <div className="bg-white border border-[#E6E2D8] rounded-lg p-6">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-[#EFECE5]">
-                <div>
-                  <div className="text-xs text-[#5E5851] font-mono">
-                    Código {selectedSector.code} · Dotación mínima diaria: {selectedSector.dailyMinHeadcount}
-                  </div>
-                  <h3 className="mt-1 text-2xl font-editorial font-semibold text-[#1C1917]">
-                    {selectedSector.name}
-                  </h3>
-                  <p className="mt-1 text-xs text-[#5E5851]">{selectedSector.description}</p>
-                </div>
                 {permissions.canEditOrgStructure && (
-                  <button
-                    type="button"
-                    onClick={() => openEditSector(selectedSector)}
-                    className={secondaryBtnClass}
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    Editar sector
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0 pl-2 border-l border-[#EFECE5]">
+                    <button
+                      type="button"
+                      onClick={() => openEditSector(sec)}
+                      className="p-1.5 text-[#5E5851] hover:text-[#7C2D36] rounded hover:bg-[#F2EFE9] cursor-pointer"
+                      title="Editar sector"
+                      aria-label={`Editar sector ${sec.name}`}
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openCreatePosition(sec.id)}
+                      className="p-1.5 text-[#5E5851] hover:text-[#7C2D36] rounded hover:bg-[#F2EFE9] cursor-pointer"
+                      title="Agregar puesto al sector"
+                      aria-label={`Agregar puesto en ${sec.name}`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 )}
               </div>
 
-              {/* Sector Metric Summary Strip */}
-              {(() => {
-                const st = sectorStats.get(selectedSector.id);
-                return (
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 py-4 border-b border-[#EFECE5]">
-                    <div>
-                      <div className="text-[11px] text-[#5E5851]">Dotación asignada</div>
-                      <div className="mt-0.5 text-lg font-mono font-semibold tabular-nums">
-                        {st?.assigned ?? 0}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] text-[#5E5851]">Activos</div>
-                      <div className="mt-0.5 text-lg font-mono font-semibold tabular-nums text-[#15803D]">
-                        {st?.active ?? 0}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] text-[#5E5851]">Turnos hoy</div>
-                      <div className="mt-0.5 text-lg font-mono font-semibold tabular-nums">
-                        {st?.scheduledToday ?? 0}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] text-[#5E5851]">Ausencias hoy</div>
-                      <div
-                        className={`mt-0.5 text-lg font-mono font-semibold tabular-nums ${
-                          (st?.absencesToday ?? 0) > 0 ? 'text-[#B91C1C]' : 'text-[#5E5851]'
-                        }`}
-                      >
-                        {st?.absencesToday ?? 0}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] text-[#5E5851]">Vacantes</div>
-                      <div
-                        className={`mt-0.5 text-lg font-mono font-semibold tabular-nums ${
-                          (st?.vacant ?? 0) > 0 ? 'text-[#B45309]' : 'text-[#5E5851]'
-                        }`}
-                      >
-                        {st?.vacant ?? 0}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
+              {/* Expanded Positions & Linked Employees */}
+              {isSectorOpen && (
+                <div className="border-t border-[#EFECE5] bg-[#FAF9F6] px-4 py-3.5 space-y-2.5">
+                  {sec.description && (
+                    <p className="text-xs text-[#5E5851]">{sec.description}</p>
+                  )}
 
-              {/* Expandable Positions List */}
-              <div className="mt-4 space-y-2.5">
-                <div className="text-xs font-semibold text-[#5E5851]">
-                  Puestos del sector ({selectedPositions.length}) — seleccioná un puesto para ver colaboradores
-                </div>
-                {selectedPositions.map((pos) => {
-                  const posEmps = data.employees.filter((e) => e.currentPositionId === pos.id);
-                  const isOpen = expandedPositionIds[pos.id] ?? true;
-                  const vacant = Math.max(0, pos.targetHeadcount - posEmps.filter((e) => e.status === 'activo').length);
+                  {secPositions.length === 0 ? (
+                    <p className="text-xs text-[#5E5851]">
+                      Sin puestos definidos aún en este sector.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {secPositions.map((pos) => {
+                        const posEmps = data.employees.filter((e) => e.currentPositionId === pos.id);
+                        const isPosOpen = expandedPositionIds[pos.id] ?? true;
+                        const vacant = Math.max(
+                          0,
+                          pos.targetHeadcount - posEmps.filter((e) => e.status === 'activo').length
+                        );
 
-                  return (
-                    <div key={pos.id} className="border border-[#E6E2D8] rounded-md overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setExpandedPositionIds((prev) => ({ ...prev, [pos.id]: !isOpen }))
-                        }
-                        className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-[#F8F7F4] hover:bg-[#F2EFE9] transition-colors text-left cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          {isOpen ? (
-                            <ChevronDown className="w-4 h-4 text-[#5E5851] shrink-0" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4 text-[#5E5851] shrink-0" />
-                          )}
-                          <span className="text-sm font-semibold text-[#1C1917] truncate">
-                            {pos.name}
-                          </span>
-                          <span className="text-xs text-[#5E5851] hidden sm:inline">
-                            · {pos.level}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs font-mono tabular-nums shrink-0">
-                          <span className="text-[#1C1917]">
-                            {posEmps.length}/{pos.targetHeadcount}
-                          </span>
-                          {vacant > 0 && <StatusText label={`${vacant} vac.`} tone="warning" />}
-                        </div>
-                      </button>
+                        return (
+                          <div
+                            key={pos.id}
+                            className="bg-white border border-[#E6E2D8] rounded-md overflow-hidden"
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedPositionIds((prev) => ({ ...prev, [pos.id]: !isPosOpen }))
+                              }
+                              className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 hover:bg-[#F8F7F4] transition-colors text-left cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                {isPosOpen ? (
+                                  <ChevronDown className="w-3.5 h-3.5 text-[#5E5851] shrink-0" />
+                                ) : (
+                                  <ChevronRight className="w-3.5 h-3.5 text-[#5E5851] shrink-0" />
+                                )}
+                                <span className="text-xs font-semibold text-[#1C1917] truncate">
+                                  {pos.name}
+                                </span>
+                                <span className="text-[11px] text-[#5E5851] hidden sm:inline">
+                                  · {pos.level}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs font-mono tabular-nums shrink-0">
+                                <span className="text-[#1C1917]">
+                                  {posEmps.length}/{pos.targetHeadcount}
+                                </span>
+                                {vacant > 0 && <StatusText label={`${vacant} vac.`} tone="warning" />}
+                              </div>
+                            </button>
 
-                      {isOpen && (
-                        <div className="divide-y divide-[#F2EFE9] bg-white">
-                          {posEmps.length === 0 ? (
-                            <div className="px-4 py-3 text-xs text-[#5E5851]">
-                              Puesto actualmente vacante. Podés dar de alta o trasladar personal desde el módulo Personal.
-                            </div>
-                          ) : (
-                            posEmps.map((emp) => {
-                              const todayShift = data.shiftAssignments.find(
-                                (s) => s.employeeId === emp.id && s.operationalDate === today
-                              );
-                              return (
-                                <div
-                                  key={emp.id}
-                                  className="px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-[#F8F7F4]"
-                                >
-                                  <div className="min-w-0">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        navigate({
-                                          module: 'personal',
-                                          section: 'legajo',
-                                          selectedEmployeeId: emp.id,
-                                          selectedEmployeeTab: 'resumen'
-                                        })
-                                      }
-                                      className="text-sm font-medium text-[#7C2D36] hover:underline text-left cursor-pointer"
-                                    >
-                                      {emp.lastName}, {emp.firstName}
-                                    </button>
-                                    <div className="text-[11px] text-[#5E5851] flex items-center gap-2">
-                                      <span className="font-mono">{emp.legajo}</span>
-                                      <span aria-hidden="true">·</span>
-                                      <span>Estado: {emp.status}</span>
-                                      {todayShift && (
-                                        <>
-                                          <span aria-hidden="true">·</span>
-                                          <span>
-                                            Hoy: {todayShift.status.replace('_', ' ')} ({todayShift.startTime}–{todayShift.endTime})
-                                          </span>
-                                        </>
-                                      )}
-                                    </div>
+                            {isPosOpen && (
+                              <div className="divide-y divide-[#F2EFE9] border-t border-[#F2EFE9]">
+                                {posEmps.length === 0 ? (
+                                  <div className="px-4 py-2.5 text-xs text-[#5E5851]">
+                                    Puesto vacante. Podés asignar o transferir personal desde el módulo Personal.
                                   </div>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      navigate({
-                                        module: 'personal',
-                                        section: 'legajo',
-                                        selectedEmployeeId: emp.id,
-                                        selectedEmployeeTab: 'asistencia'
-                                      })
-                                    }
-                                    className="text-xs text-[#5E5851] hover:text-[#1C1917] whitespace-nowrap shrink-0 cursor-pointer"
-                                  >
-                                    Abrir legajo →
-                                  </button>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      )}
+                                ) : (
+                                  posEmps.map((emp) => {
+                                    const todayShift = data.shiftAssignments.find(
+                                      (s) => s.employeeId === emp.id && s.operationalDate === today
+                                    );
+                                    return (
+                                      <div
+                                        key={emp.id}
+                                        className="px-4 py-2 flex items-center justify-between gap-3 hover:bg-[#FAF9F6]"
+                                      >
+                                        <div className="min-w-0">
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              navigate({
+                                                module: 'personal',
+                                                section: 'legajo',
+                                                selectedEmployeeId: emp.id,
+                                                selectedEmployeeTab: 'resumen'
+                                              })
+                                            }
+                                            className="text-xs font-semibold text-[#7C2D36] hover:underline text-left cursor-pointer"
+                                          >
+                                            {emp.lastName}, {emp.firstName}
+                                          </button>
+                                          <div className="text-[11px] text-[#5E5851] flex flex-wrap items-center gap-1.5">
+                                            <span className="font-mono">{emp.legajo}</span>
+                                            <span aria-hidden="true">·</span>
+                                            <span>{emp.status}</span>
+                                            {todayShift && (
+                                              <>
+                                                <span aria-hidden="true">·</span>
+                                                <span>
+                                                  Hoy: {todayShift.status.replace('_', ' ')} ({todayShift.startTime}–{todayShift.endTime})
+                                                </span>
+                                              </>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            navigate({
+                                              module: 'personal',
+                                              section: 'legajo',
+                                              selectedEmployeeId: emp.id,
+                                              selectedEmployeeTab: 'resumen'
+                                            })
+                                          }
+                                          className="text-xs text-[#5E5851] hover:text-[#1C1917] whitespace-nowrap shrink-0 cursor-pointer"
+                                        >
+                                          Abrir legajo →
+                                        </button>
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })}
       </div>
 
       {/* Create / Edit Sector Modal */}
@@ -501,9 +501,23 @@ export const OrgChartSection: React.FC = () => {
       <Modal
         open={positionModalOpen}
         onClose={() => setPositionModalOpen(false)}
-        title={`Nuevo puesto en ${selectedSector?.name ?? ''}`}
+        title="Crear nuevo puesto"
       >
         <form onSubmit={handleSavePosition} className="space-y-4">
+          <div>
+            <label className={labelClass}>Sector *</label>
+            <select
+              value={positionTargetSectorId}
+              onChange={(e) => setPositionTargetSectorId(e.target.value)}
+              className={inputClass}
+            >
+              {data.sectors.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className={labelClass}>Nombre del puesto *</label>
             <input
